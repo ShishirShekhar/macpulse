@@ -332,7 +332,8 @@ kept in §14 for historical context only.
   (the API returned them disabled).
 - Actions: allow selected actions only (GitHub-owned, verified creators, and
   `softprops/action-gh-release@*`), workflow default token is read-only, actions are
-  pinned to commit SHAs, Dependabot updates them weekly.
+  pinned to commit SHAs and the repo **requires** SHA pinning (tag references are
+  rejected), Dependabot updates the pins weekly.
 - Workflows have `concurrency` and `timeout-minutes`; the build keeps artifacts 14 days.
 - Community health: README badges, `CHANGELOG.md`, `SUPPORT.md`, issue-template
   config linking Discussions + private advisories, PR template.
