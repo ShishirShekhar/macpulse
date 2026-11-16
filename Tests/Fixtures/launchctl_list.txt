@@ -1,0 +1,8 @@
+PID	Status	Label
+-	0	com.apple.Safari.History
+1234	0	com.docker.helper
+5678	0	com.apple.Spotlight
+9012	0	com.nordvpn.osx.helper
+-	0	homebrew.mxcl.postgresql@14
+3456	0	com.google.keystone.user.agent
+-	0	org.openbsd.ssh-agent

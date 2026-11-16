@@ -91,6 +91,12 @@ struct CheckResult: Codable {
     let topProcesses: [TopProcess]
     let fixes: [FixSuggestion]
     let score: Int
+
+    /// Per-component breakdown. Optional so older cached scans still decode.
+    var subscores: [Subscore]? = nil
+    /// The detected device profile is stored so the UI and later runs know what
+    /// kind of Mac produced this scan.
+    var profile: DeviceProfile? = nil
 }
 
 extension CheckResult {

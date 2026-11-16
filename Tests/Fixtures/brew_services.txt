@@ -1,0 +1,4 @@
+Name          Status  User           File
+postgresql@14 started shishirshekhar ~/Library/LaunchAgents/homebrew.mxcl.postgresql@14.plist
+redis         stopped
+nginx         started root           /Library/LaunchDaemons/homebrew.mxcl.nginx.plist

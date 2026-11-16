@@ -1,0 +1,20 @@
+[
+  {
+    "name": "postgresql@14",
+    "status": "started",
+    "user": "shishirshekhar",
+    "file": "~/Library/LaunchAgents/homebrew.mxcl.postgresql@14.plist"
+  },
+  {
+    "name": "redis",
+    "status": "stopped",
+    "user": null,
+    "file": null
+  },
+  {
+    "name": "nginx",
+    "status": "started",
+    "user": "root",
+    "file": "/Library/LaunchDaemons/homebrew.mxcl.nginx.plist"
+  }
+]

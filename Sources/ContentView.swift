@@ -71,6 +71,10 @@ struct ContentView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         HeaderView(result: result)
 
+                        if model.showScoreBreakdown, let subscores = result.subscores, !subscores.isEmpty {
+                            ScoreBreakdownView(subscores: subscores)
+                        }
+
                         if !result.attentionItems.isEmpty {
                             AttentionView(items: result.attentionItems)
                         }
@@ -108,6 +112,24 @@ struct ContentView: View {
                     .padding(.top, 12)
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .zIndex(2)
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { model.showSettings },
+            set: { model.showSettings = $0 }
+        )) {
+            VStack(alignment: .trailing, spacing: 0) {
+                HStack {
+                    Spacer()
+                    Button("Done") {
+                        model.showSettings = false
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .padding([.top, .trailing], 16)
+                }
+                SettingsView()
+                    .environmentObject(model)
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.86), value: model.banner?.id)
@@ -163,28 +185,47 @@ struct HeaderView: View {
 
             Spacer(minLength: 12)
 
-            ScoreRing(score: result.score, label: result.scoreLabel)
+            Button {
+                model.showScoreBreakdown.toggle()
+            } label: {
+                ScoreRing(score: result.score, label: result.scoreLabel)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Health score \(result.score) of 100, \(result.scoreLabel). Click to toggle score breakdown.")
 
             VStack(spacing: 7) {
-                Button {
-                    model.runCheck()
-                } label: {
-                    HStack(spacing: 6) {
-                        if model.isChecking {
-                            ProgressView().controlSize(.small)
-                        } else {
-                            Image(systemName: "arrow.clockwise")
+                HStack(spacing: 6) {
+                    Button {
+                        model.runCheck()
+                    } label: {
+                        HStack(spacing: 6) {
+                            if model.isChecking {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Image(systemName: "arrow.clockwise")
+                            }
+                            Text(model.isChecking ? "Checking…" : "Check Now")
                         }
-                        Text(model.isChecking ? "Checking…" : "Check Now")
+                        .frame(minWidth: 108)
                     }
-                    .frame(minWidth: 108)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .tint(Theme.accent)
-                .disabled(model.isChecking)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .tint(Theme.accent)
+                    .disabled(model.isChecking)
+                    .accessibilityLabel(model.isChecking ? "Checking system health…" : "Run system health check now")
 
-                Text(model.dailyCheck ? "Daily at 9:00 AM" : "Daily check off")
+                    Button {
+                        model.showSettings = true
+                    } label: {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 14))
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    .accessibilityLabel("Open MacPulse Settings")
+                }
+
+                Text(model.dailyCheck ? "Daily at \(model.formattedScheduleTime)" : "Daily check off")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -229,6 +270,62 @@ struct ScoreRing: View {
         }
         .frame(width: 84, height: 84)
         .help(label)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Health score \(score) out of 100, \(label)")
+    }
+}
+
+// MARK: - Score breakdown
+
+struct ScoreBreakdownView: View {
+    @EnvironmentObject private var model: AppModel
+    let subscores: [Subscore]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Score Breakdown (starts at 100)", systemImage: "chart.bar.xaxis")
+                    .font(.system(size: 13, weight: .semibold))
+                Spacer()
+                Button("Done") {
+                    model.showScoreBreakdown = false
+                }
+                .buttonStyle(.borderless)
+                .font(.caption)
+                .foregroundStyle(Theme.accent)
+            }
+
+            Divider()
+
+            VStack(spacing: 8) {
+                ForEach(subscores) { item in
+                    HStack {
+                        HStack(spacing: 6) {
+                            if item.points == 0 {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(Theme.good)
+                                    .font(.system(size: 12))
+                            } else {
+                                Image(systemName: "minus.circle.fill")
+                                    .foregroundStyle(item.points >= 15 ? Theme.bad : Theme.warn)
+                                    .font(.system(size: 12))
+                            }
+                            Text(item.title)
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                        Spacer()
+                        Text(item.note)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text(item.points == 0 ? "0 pts" : "-\(item.points) pts")
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(item.points == 0 ? Theme.good : (item.points >= 15 ? Theme.bad : Theme.warn))
+                            .frame(width: 55, alignment: .trailing)
+                    }
+                }
+            }
+        }
+        .card()
     }
 }
 
@@ -423,6 +520,8 @@ struct MetricCard: View {
                 .help(statusTitle)
         }
         .card()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(value). \(caption). Status: \(statusTitle)")
     }
 
     private var statusTitle: String {
@@ -513,7 +612,7 @@ struct FixRow: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 if !fix.command.isEmpty {
-                    DisclosureGroup {
+                    if model.showAdvancedCommands {
                         Text(fix.command)
                             .font(.system(size: 10, design: .monospaced))
                             .foregroundStyle(.secondary)
@@ -524,12 +623,26 @@ struct FixRow: View {
                                 Color.primary.opacity(0.05),
                                 in: RoundedRectangle(cornerRadius: 7, style: .continuous)
                             )
-                    } label: {
-                        Text("Show command")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
+                            .padding(.top, 1)
+                    } else {
+                        DisclosureGroup {
+                            Text(fix.command)
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                                .padding(8)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    Color.primary.opacity(0.05),
+                                    in: RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                )
+                        } label: {
+                            Text("Show command")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.top, 1)
                     }
-                    .padding(.top, 1)
                 }
 
                 HStack(spacing: 8) {
@@ -553,6 +666,7 @@ struct FixRow: View {
                         .tint(Theme.good)
                         .controlSize(.small)
                         .disabled(model.runningFixID != nil)
+                        .accessibilityLabel("Approve fix: \(fix.title)")
                     }
 
                     Button(isActionable ? "Decline" : "Dismiss") {
@@ -561,6 +675,7 @@ struct FixRow: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(model.runningFixID != nil)
+                    .accessibilityLabel("\(isActionable ? "Decline" : "Dismiss") fix: \(fix.title)")
 
                     if fix.admin {
                         Label("Asks for admin password", systemImage: "lock.fill")
@@ -813,13 +928,21 @@ struct Footer: View {
                 get: { model.dailyCheck },
                 set: { model.setDailyCheck($0) }
             )) {
-                Label("Daily check at 9:00 AM", systemImage: "calendar.badge.clock")
+                Label("Daily check at \(model.formattedScheduleTime)", systemImage: "calendar.badge.clock")
                     .font(.system(size: 11))
             }
             .toggleStyle(.switch)
             .controlSize(.mini)
 
             Spacer()
+
+            Button {
+                model.showSettings = true
+            } label: {
+                Label("Settings", systemImage: "gearshape")
+            }
+            .buttonStyle(.link)
+            .font(.system(size: 11))
 
             Button {
                 NSWorkspace.shared.activateFileViewerSelecting([SystemCheck.storeURL])

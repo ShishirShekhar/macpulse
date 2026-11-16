@@ -1,0 +1,12 @@
+Processes: 420 total, 2 running, 418 sleeping, 1850 threads 
+2026/11/16 19:00:00
+Load Avg: 2.15, 1.80, 1.45 
+CPU usage: 8.5% user, 12.3% sys, 79.2% idle 
+
+PID    COMMAND      %CPU
+0      kernel_task  18.5
+1234   WindowServer 14.2
+5678   Safari       35.4
+9012   usernoted    8.1
+3456   Docker       42.0
+7890   Code         12.5
