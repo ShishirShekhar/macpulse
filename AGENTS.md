@@ -6,7 +6,7 @@
 > are redirects — they must never duplicate content. If you learn something new,
 > update **this file only**.
 
-Last updated: 2026-11-16 · App version: 1.1 · Status: **v1.1.0 published on GitHub** (<https://github.com/ShishirShekhar/macpulse>); Phase 1 complete, Phase 2 roadmap polish open.
+Last updated: 2026-11-16 · App version: 1.1.1 · Status: **v1.1.1 published on GitHub** (<https://github.com/ShishirShekhar/macpulse>); Phase 1 complete, Phase 2 roadmap polish open.
 
 ---
 

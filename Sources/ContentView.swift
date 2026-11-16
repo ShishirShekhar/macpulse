@@ -952,7 +952,7 @@ struct Footer: View {
             .buttonStyle(.link)
             .font(.system(size: 11))
 
-            Text("v1.1.0")
+            Text("v1.1.1")
                 .font(.system(size: 10))
                 .foregroundStyle(.tertiary)
         }
