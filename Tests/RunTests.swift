@@ -131,6 +131,10 @@ struct RunTests {
         assertTrue(ProbeParsers.isProtectedLabel("com.apple.Safari"), "Apple label protected")
         assertTrue(ProbeParsers.isProtectedLabel("com.macpulse.daily"), "MacPulse label protected")
         assertTrue(ProbeParsers.isProtectedLabel("homebrew.mxcl.postgresql"), "Homebrew label protected")
+        assertTrue(ProbeParsers.isProtectedLabel("application.com.microsoft.VSCode.23798302.23798915"), "Running GUI app protected")
+        assertTrue(ProbeParsers.isProtectedLabel("application.net.whatsapp.WhatsApp.123"), "Running WhatsApp protected")
+        assertTrue(ProbeParsers.isProtectedLabel("com.microsoft.VSCode.ShipIt"), "ShipIt updater protected")
+        assertTrue(ProbeParsers.isProtectedLabel("uikitapplication.com.foo.bar"), "UIKitApplication label protected")
         assertFalse(ProbeParsers.isProtectedLabel("com.docker.helper"), "Docker label not protected")
 
         assertTrue(ProbeParsers.isVendorLabel("com.docker.helper"), "Docker is vendor label")
@@ -147,6 +151,7 @@ struct RunTests {
         assertTrue(candidates.contains { $0.label == "com.docker.helper" }, "Docker candidate included by vendor match")
         assertTrue(candidates.contains { $0.label == "com.nordvpn.osx.helper" }, "NordVPN candidate included")
         assertFalse(candidates.contains { $0.label.contains("apple") }, "Apple never in helper candidates")
+        assertFalse(candidates.contains { $0.label.contains("application.") }, "Running application never in helper candidates")
 
         // Model naming
         assertEqual(ProbeParsers.friendlyModel("MacBookAir10,1", chip: "Apple M1"), "MacBook Air (M1, 2020) · Apple M1", "Friendly model M1 Air")
@@ -260,7 +265,7 @@ struct RunTests {
         var genericContext = desktopBadBatteryContext
         genericContext.heavyApps = [HeavyApp(name: "Blender", bundleID: "org.blender.app", cpu: 85.0, pid: 4567)]
         genericContext.brewServices = ["postgresql@14"]
-        genericContext.helpers = [HelperService(label: "com.docker.helper", friendlyName: "Docker", admin: false, plistPath: nil)]
+        genericContext.helpers = [HelperService(label: "com.docker.helper", friendlyName: "Docker", admin: false, plistPath: "/Library/LaunchAgents/com.docker.helper.plist")]
 
         let genericFixes = Rules.build(genericContext)
         assertTrue(genericFixes.contains { $0.id == "quit-org.blender.app" }, "Quit heavy app suggested")

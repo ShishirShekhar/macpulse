@@ -161,6 +161,8 @@ enum Rules {
 
         // Third-party background helpers (VPN, VM, tablet, game launcher).
         for helper in context.helpers.prefix(3) {
+            guard !ProbeParsers.isProtectedLabel(helper.label) else { continue }
+            guard helper.plistPath != nil else { continue }
             guard helper.label.range(of: "^[A-Za-z0-9._-]+$", options: .regularExpression) != nil else { continue }
             let domain = helper.admin ? "system" : "gui/$(id -u)"
             let command = "launchctl bootout \(domain)/\(helper.label) 2>/dev/null; launchctl disable \(domain)/\(helper.label) 2>/dev/null; true"

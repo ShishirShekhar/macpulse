@@ -6,3 +6,4 @@ PID	Status	Label
 -	0	homebrew.mxcl.postgresql@14
 3456	0	com.google.keystone.user.agent
 -	0	org.openbsd.ssh-agent
+1801	0	application.com.microsoft.VSCode.23798302.23798915

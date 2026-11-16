@@ -6,6 +6,13 @@ All notable changes to MacPulse are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Prevented running GUI apps from being mistakenly flagged as background helpers:
+  LaunchServices synthetic job labels (`application.*`, `uikitapplication.*`) and
+  updater processes (`*.ShipIt`) are now strictly protected, and LaunchAgents are
+  only suggested if backed by an installed `.plist` file on disk.
+
 Planned for future releases: scan history with a score trend (last 30 scans),
 first-run onboarding with permission explanation, menu bar extra, and localization.
 

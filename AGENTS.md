@@ -214,8 +214,11 @@ Empty `command` with no native action means "advice only" — the UI shows only 
 | `helper-<label>` | vendor match or busy non-Apple agent; system daemons checked | `launchctl bootout` + `disable` | system domain only | Undo re-enables + bootstraps the plist |
 | `login-<name>` | AppleScript login items | delete via System Events | no | Not reversible; TCC sensitive |
 
-**Protected labels:** `com.apple.*`, `com.macpulse.*`, `homebrew.*` and
-`com.openssh.*` are never offered as helper fixes, even when busy.
+**Protected labels:** `com.apple.*`, `com.macpulse.*`, `homebrew.*`, `com.openssh.*`,
+`org.openbsd.*`, running GUI applications (`application.*`, `uikitapplication.*`),
+and Electron/Squirrel updaters (`*.ShipIt`) are never offered as helper fixes.
+Furthermore, user launch agents are only offered if backed by a valid `.plist`
+file on disk in `~/Library/LaunchAgents` or `/Library/LaunchAgents`.
 
 **Scoring (current):** start at 100; −20 if load > 1.5× logical cores, −10 if
 > 0.8×; −15 if free RAM < 10 % or swap > 1 GB, −8 if < 25 %; −15 if disk < 10 % free,

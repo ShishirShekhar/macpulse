@@ -72,14 +72,22 @@ enum StartupProbe {
             Shell.value("launchctl list 2>/dev/null")
         )
         let candidates = ProbeParsers.helperCandidates(entries: entries, cpuByPID: cpuByPID)
+        let userPlists = userAgentPathMap()
 
-        var helpers: [HelperService] = candidates.map { candidate in
-            HelperService(
+        var helpers: [HelperService] = []
+        for candidate in candidates {
+            guard let plistPath = userPlists[candidate.label.lowercased()] ?? userAgentPath(for: candidate.label) else {
+                // If there is no backing .plist on disk in ~/Library/LaunchAgents or
+                // /Library/LaunchAgents, this is an ephemeral process or application
+                // session, NOT an installed background launch agent. Never offer to disable it.
+                continue
+            }
+            helpers.append(HelperService(
                 label: candidate.label,
                 friendlyName: ProbeParsers.friendlyHelperName(candidate.label),
                 admin: false,
-                plistPath: userAgentPath(for: candidate.label)
-            )
+                plistPath: plistPath
+            ))
         }
 
         // System-wide daemons (VPNs, VM runtimes, remote access) do not appear in
@@ -106,6 +114,29 @@ enum StartupProbe {
         }
 
         return helpers
+    }
+
+    private static func userAgentPathMap() -> [String: String] {
+        var map: [String: String] = [:]
+        let directories = [
+            NSHomeDirectory() + "/Library/LaunchAgents",
+            "/Library/LaunchAgents"
+        ]
+        for dir in directories {
+            guard let files = try? FileManager.default.contentsOfDirectory(atPath: dir) else { continue }
+            for file in files where file.hasSuffix(".plist") {
+                let fullPath = "\(dir)/\(file)"
+                let fileBase = String(file.dropLast(6))
+                map[fileBase.lowercased()] = fullPath
+
+                if let data = try? Data(contentsOf: URL(fileURLWithPath: fullPath)),
+                   let plist = (try? PropertyListSerialization.propertyList(from: data, options: [], format: nil)) as? [String: Any],
+                   let label = plist["Label"] as? String {
+                    map[label.lowercased()] = fullPath
+                }
+            }
+        }
+        return map
     }
 
     private static func userAgentPath(for label: String) -> String? {

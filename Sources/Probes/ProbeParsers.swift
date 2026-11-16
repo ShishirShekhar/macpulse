@@ -220,12 +220,21 @@ enum ProbeParsers {
     }
 
     /// Labels MacPulse must never offer to disable, even when they are busy.
+    /// This includes system daemons, MacPulse itself, and running GUI apps tracked
+    /// by launchd under synthetic LaunchServices labels (e.g. application.*).
     static func isProtectedLabel(_ label: String) -> Bool {
         let lower = label.lowercased()
         return lower.hasPrefix("com.apple.")
             || lower.hasPrefix("com.macpulse.")
             || lower.hasPrefix("homebrew.")
             || lower.hasPrefix("com.openssh.")
+            || lower.hasPrefix("org.openbsd.")
+            || lower.hasPrefix("application.")
+            || lower.hasPrefix("uikitapplication.")
+            || lower.hasPrefix("xpc.service.")
+            || lower.hasPrefix("user.")
+            || lower.hasPrefix("service.")
+            || lower.contains(".shipit")
     }
 
     static let vendorHints: [String] = [
