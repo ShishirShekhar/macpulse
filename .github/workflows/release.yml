@@ -1,0 +1,87 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-14
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Build universal app
+        run: ./build.sh
+
+      - name: Validate the headless scan
+        run: python3 Tools/verify-json.py
+
+      # Optional signing and notarization. Without secrets this step is a no-op
+      # and the release ships the ad-hoc signed build (Gatekeeper instructions
+      # are in README.md). Add these repository secrets to enable:
+      #   MACOS_CERT_P12          base64 of a .p12 Developer ID Application cert
+      #   MACOS_CERT_PASSWORD     password for the .p12
+      #   MACOS_KEYCHAIN_PASSWORD any temporary keychain password
+      #   APPLE_ID                Apple ID for notarytool
+      #   APPLE_TEAM_ID           Developer Team ID
+      #   APPLE_APP_PASSWORD      app-specific password for notarytool
+      - name: Sign and notarize (optional)
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          MACOS_KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${MACOS_CERT_P12:-}" ]; then
+            echo "No signing secrets — shipping the ad-hoc signed build."
+            exit 0
+          fi
+          echo "$MACOS_CERT_P12" | base64 --decode > /tmp/cert.p12
+          security create-keychain -p "$MACOS_KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -lut 21600 build.keychain
+          security unlock-keychain -p "$MACOS_KEYCHAIN_PASSWORD" build.keychain
+          security import /tmp/cert.p12 -k build.keychain \
+            -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign
+          security list-keychains -d user -s build.keychain
+          security set-key-partition-list -S apple-tool:,apple: \
+            -s -k "$MACOS_KEYCHAIN_PASSWORD" build.keychain >/dev/null
+
+          IDENTITY="$(security find-identity -v -p codesigning build.keychain \
+            | awk '/Developer ID Application/ {print $2; exit}')"
+          test -n "$IDENTITY"
+
+          codesign --force --deep --options runtime --timestamp \
+            --sign "$IDENTITY" build/MacPulse.app
+
+          ditto -c -k --sequesterRsrc --keepParent build/MacPulse.app /tmp/notarize.zip
+          xcrun notarytool submit /tmp/notarize.zip \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --wait
+          xcrun stapler staple build/MacPulse.app
+
+      - name: Package
+        run: |
+          set -euo pipefail
+          cd build
+          NAME="MacPulse-${GITHUB_REF_NAME}.zip"
+          ditto -c -k --sequesterRsrc --keepParent MacPulse.app "$NAME"
+          shasum -a 256 "$NAME" > checksums.txt
+          cat checksums.txt
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/MacPulse-*.zip
+            build/checksums.txt
+          generate_release_notes: true

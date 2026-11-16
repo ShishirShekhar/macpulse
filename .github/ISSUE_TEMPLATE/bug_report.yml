@@ -1,0 +1,67 @@
+name: Bug report
+description: Something in the dashboard, a rule or a fix is wrong.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please redact personal paths, hostnames and app names
+        if you do not want them public. For security issues use SECURITY.md instead.
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: "15.1"
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Mac model
+      placeholder: "MacBook Air (M1, 2020) / Mac mini (M2) / Intel …"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Dashboard / UI
+        - Score
+        - A suggestion or its wording
+        - Running a fix
+        - Undo
+        - Daily background check
+        - Install / Gatekeeper
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Include the rule ID if the issue is about a suggestion.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: json
+    attributes:
+      label: Scan output (optional)
+      description: |
+        Paste the relevant part of
+        `~/Library/Application Support/MacPulse/last-check.json`.
+      render: json
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety
+      options:
+        - label: This report does not contain secrets or personal data.
+          required: true

@@ -1,0 +1,49 @@
+name: Feature request
+description: Suggest a new rule, detector or improvement.
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        MacPulse is deliberately conservative. New fixes must be explicit,
+        scoped and reversible where possible. Read AGENTS.md §7 before proposing
+        anything that changes system state.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behaviour
+      description: What should MacPulse detect, say and (optionally) do?
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Exact command (if any)
+      description: The command a fix would run, and how it can be undone.
+      render: shell
+  - type: dropdown
+    id: admin
+    attributes:
+      label: Needs administrator rights?
+      options:
+        - "No"
+        - "Yes"
+        - "Not sure"
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety checks
+      options:
+        - label: It does not disable SIP, FileVault, the firewall, MDM or security updates.
+          required: true
+        - label: It does not delete user files or browser data.
+          required: true
+        - label: It never targets Apple or system processes.
+          required: true

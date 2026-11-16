@@ -1,0 +1,40 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          swift --version
+          xcodebuild -version 2>/dev/null || echo "Command Line Tools only"
+
+      - name: Build universal app
+        run: ./build.sh
+
+      - name: Validate the headless scan
+        run: python3 Tools/verify-json.py
+
+      - name: Verify the bundle
+        run: |
+          lipo -info build/MacPulse.app/Contents/MacOS/MacPulse
+          plutil -p build/MacPulse.app/Contents/Info.plist
+
+      - name: Upload the app
+        uses: actions/upload-artifact@v4
+        with:
+          name: MacPulse-app
+          path: build/MacPulse.app
+          if-no-files-found: error
