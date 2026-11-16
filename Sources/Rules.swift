@@ -3,37 +3,23 @@ import Foundation
 /// Everything a rule may need. Detection happens in `SystemCheck`; rules only
 /// decide what to show and which safe action to offer.
 struct RuleContext {
-    let profile: DeviceProfile
-    let interactive: Bool
-    let notificationCPU: Double
-    let acSleepMinutes: Int
-    let loginItems: [String]
-    let memFreePct: Double
-    let swapUsedMB: Double
-    let diskFreeGB: Double
-    let diskFreePct: Double
-    let windowServerCPU: Double
-    let kernelTaskCPU: Double
-    let batteryHealthPct: Double
-    let batteryCondition: String
-    let batteryCycles: Int
-    let brewServices: [String]
-    let helpers: [HelperService]
-    let heavyApps: [HeavyApp]
-}
-
-struct HeavyApp {
-    let name: String
-    let bundleID: String
-    let cpu: Double
-    let pid: Int32
-}
-
-struct HelperService {
-    let label: String
-    let friendlyName: String
-    let admin: Bool
-    let plistPath: String?
+    var profile: DeviceProfile
+    var interactive: Bool
+    var notificationCPU: Double
+    var acSleepMinutes: Int
+    var loginItems: [String]
+    var memFreePct: Double
+    var swapUsedMB: Double
+    var diskFreeGB: Double
+    var diskFreePct: Double
+    var windowServerCPU: Double
+    var kernelTaskCPU: Double
+    var batteryHealthPct: Double
+    var batteryCondition: String
+    var batteryCycles: Int
+    var brewServices: [String]
+    var helpers: [HelperService]
+    var heavyApps: [HeavyApp]
 }
 
 enum Rules {
@@ -126,7 +112,7 @@ enum Rules {
         }
 
         // WindowServer — usually animation in a background tab.
-        if context.windowServerCPU > 60 {
+        if context.interactive && context.windowServerCPU > 60 {
             fixes.append(FixSuggestion(
                 id: "windowserver",
                 title: "Close animated tabs",
@@ -156,7 +142,7 @@ enum Rules {
         // Homebrew services that start at login.
         for service in context.brewServices.prefix(3) {
             let safeName = service.replacingOccurrences(
-                of: "[^A-Za-z0-9._-]",
+                of: "[^A-Za-z0-9._@-]",
                 with: "",
                 options: .regularExpression
             )

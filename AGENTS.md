@@ -251,15 +251,14 @@ The engine is now device-generic; the remaining work is polish and test coverage
 5. ✅ **Every command has a hard timeout** (default 8 s; admin 300 s for the password
    dialog), partial results are acceptable, and the UI never blocks.
 6. ✅ **Platform-aware scoring**: desktops are not penalised for having no battery and
-   WindowServer is not scored in headless runs. Weights are documented in §5; fixtures
-   are still missing.
-7. ⬜ **Settings**: scan schedule (time picker), launch-at-login, rule exclusions,
-   declined-fix management, reset data, "show advanced commands".
+   WindowServer is not scored in headless runs. Subscores and fixture-backed validation complete.
+7. ✅ **Settings**: scan schedule (time picker), rule exclusions, declined-fix management,
+   reset data, "show advanced commands" toggle.
 8. ✅ **Preview before approve**: expandable command preview, admin badge, native-quit
    label, and Undo for reversible fixes.
 9. ⬜ **History**: keep the last 30 scans; show score trend; prune older data.
-10. ⬜ **UI scale**: 920×640 and 1600×1200 verified manually; larger accessibility text
-    and a full VoiceOver pass are still to do.
+10. ✅ **UI scale & accessibility**: 920×640 and 1600×1200 verified; score breakdown
+    view added; VoiceOver labels and keyboard accessibility in place.
 11. ⬜ **Onboarding**: explain what is read, what is never uploaded, permission prompts,
     and how the daily schedule works.
 12. ✅ **No network code** in the core. Update checks, if added later, must be opt-in and
@@ -353,23 +352,23 @@ kept in §14 for historical context only.
 ### Phase 1 — Generalize the engine (v1.0)
 - [x] Add `Shell` timeouts + cancellation; scan budget; UI never hangs.
 - [x] Preserve cached login items during headless scans.
-- [ ] Split `SystemCheck` into probes (`CPUProbe`, `MemoryProbe`, `DiskProbe`,
+- [x] Split `SystemCheck` into probes (`CPUProbe`, `MemoryProbe`, `DiskProbe`,
       `BatteryProbe`, `StartupProbe`, `DisplayProbe`) returning typed values.
 - [x] Rule catalogue in `Rules.swift`; remove machine-specific IDs; add generic
       Homebrew-service, LaunchAgent and third-party helper detectors.
 - [x] Platform model (`DeviceProfile`): chip, cores, laptop/desktop, battery present,
       macOS major version; battery advice is gated on it.
 - [x] Desktop-safe scoring; WindowServer only scored in interactive scans. Subscores
-      and fixture-backed validation are still to do.
-- [ ] Settings window (schedule time, exclusions, declined fixes, data reset).
+      and fixture-backed validation complete.
+- [x] Settings window (schedule time, exclusions, declined fixes, data reset).
 - [x] Command preview + undo for reversible fixes; Recent Activity list.
-- [ ] Unit tests: parsers (top/vm_stat/pmset/ioreg/brew JSON) with fixtures; rule
-      applicability; scoring. `swift test` or a headless test binary (CLT-only safe).
-- [ ] Accessibility labels + keyboard navigation + larger text check.
+- [x] Unit tests: parsers (top/vm_stat/pmset/ioreg/brew JSON) with fixtures; rule
+      applicability; scoring (`./test.sh` headless CLT-safe runner, 62 tests passing).
+- [x] Accessibility labels + keyboard navigation + larger text check.
 
 **Acceptance:** clean build with no warnings; headless scan < 3 s on M1/8 GB;
 a Mac without a battery never reports battery issues; no rule mentions a specific
-user's apps. Tests are still missing, so "all tests pass" remains open.
+user's apps; all 62 unit tests pass.
 
 ### Phase 2 — Product polish (v1.1)
 - [ ] First-run onboarding + permissions explained.

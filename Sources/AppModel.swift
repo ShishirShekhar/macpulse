@@ -79,17 +79,43 @@ final class AppModel: ObservableObject {
     @Published var declined: Set<String> = [] {
         didSet { UserDefaults.standard.set(Array(declined), forKey: declinedKey) }
     }
+    @Published var excludedRules: Set<String> = [] {
+        didSet { UserDefaults.standard.set(Array(excludedRules), forKey: excludedRulesKey) }
+    }
+    @Published var showAdvancedCommands = false {
+        didSet { UserDefaults.standard.set(showAdvancedCommands, forKey: advancedCommandsKey) }
+    }
+    @Published var scheduleHour: Int = 9
+    @Published var scheduleMinute: Int = 0
+    @Published var showScoreBreakdown = false
+    @Published var showSettings = false
 
     private let declinedKey = "declinedFixIDs"
+    private let excludedRulesKey = "excludedRuleIDs"
+    private let advancedCommandsKey = "showAdvancedCommands"
+    private let scheduleHourKey = "scheduleHour"
+    private let scheduleMinuteKey = "scheduleMinute"
     private var bannerToken = UUID()
 
     init() {
         declined = Set(UserDefaults.standard.stringArray(forKey: declinedKey) ?? [])
+        excludedRules = Set(UserDefaults.standard.stringArray(forKey: excludedRulesKey) ?? [])
+        showAdvancedCommands = UserDefaults.standard.bool(forKey: advancedCommandsKey)
+
+        if let savedSchedule = LaunchAgent.installedSchedule {
+            scheduleHour = savedSchedule.hour
+            scheduleMinute = savedSchedule.minute
+        } else {
+            let savedH = UserDefaults.standard.integer(forKey: scheduleHourKey)
+            scheduleHour = savedH > 0 ? savedH : 9
+            scheduleMinute = UserDefaults.standard.integer(forKey: scheduleMinuteKey)
+        }
+
         result = SystemCheck.load()
 
         // First launch: schedule the daily background check automatically.
         if !LaunchAgent.isInstalled {
-            _ = LaunchAgent.install()
+            _ = LaunchAgent.install(hour: scheduleHour, minute: scheduleMinute)
         }
         dailyCheck = LaunchAgent.isInstalled
     }
@@ -98,7 +124,15 @@ final class AppModel: ObservableObject {
 
     var visibleFixes: [FixSuggestion] {
         guard let result else { return [] }
-        return result.fixes.filter { !declined.contains($0.id) }
+        return result.fixes.filter { fix in
+            if declined.contains(fix.id) { return false }
+            for excluded in excludedRules {
+                if fix.id == excluded || fix.id.hasPrefix("\(excluded)-") {
+                    return false
+                }
+            }
+            return true
+        }
     }
 
     var declinedFixes: [FixSuggestion] {
@@ -302,18 +336,63 @@ final class AppModel: ObservableObject {
 
     // MARK: Daily schedule
 
-    func setDailyCheck(_ enabled: Bool) {
-        if enabled {
-            if let error = LaunchAgent.install() {
+    var formattedScheduleTime: String {
+        let h = scheduleHour % 12 == 0 ? 12 : scheduleHour % 12
+        let ampm = scheduleHour < 12 ? "AM" : "PM"
+        return String(format: "%d:%02d %@", h, scheduleMinute, ampm)
+    }
+
+    func updateSchedule(hour: Int, minute: Int) {
+        scheduleHour = hour
+        scheduleMinute = minute
+        UserDefaults.standard.set(hour, forKey: scheduleHourKey)
+        UserDefaults.standard.set(minute, forKey: scheduleMinuteKey)
+        if dailyCheck {
+            if let error = LaunchAgent.install(hour: hour, minute: minute) {
                 banner = Banner(text: error, kind: .failure)
             } else {
-                banner = Banner(text: "Daily check scheduled for 9:00 AM", kind: .success)
+                banner = Banner(text: "Daily check rescheduled for \(formattedScheduleTime)", kind: .success)
+            }
+            scheduleBannerClear()
+        }
+    }
+
+    func setDailyCheck(_ enabled: Bool) {
+        if enabled {
+            if let error = LaunchAgent.install(hour: scheduleHour, minute: scheduleMinute) {
+                banner = Banner(text: error, kind: .failure)
+            } else {
+                banner = Banner(text: "Daily check scheduled for \(formattedScheduleTime)", kind: .success)
             }
         } else {
             LaunchAgent.uninstall()
             banner = Banner(text: "Daily check turned off", kind: .info)
         }
         dailyCheck = LaunchAgent.isInstalled
+        scheduleBannerClear()
+    }
+
+    // MARK: Rules and Preferences
+
+    func toggleRuleExclusion(_ ruleID: String) {
+        if excludedRules.contains(ruleID) {
+            excludedRules.remove(ruleID)
+        } else {
+            excludedRules.insert(ruleID)
+        }
+    }
+
+    func resetAllData() {
+        SystemCheck.clearCache()
+        result = nil
+        activity.removeAll()
+        declined.removeAll()
+        excludedRules.removeAll()
+        showAdvancedCommands = false
+        UserDefaults.standard.removeObject(forKey: declinedKey)
+        UserDefaults.standard.removeObject(forKey: excludedRulesKey)
+        UserDefaults.standard.removeObject(forKey: advancedCommandsKey)
+        banner = Banner(text: "All MacPulse data and preferences reset", kind: .info)
         scheduleBannerClear()
     }
 

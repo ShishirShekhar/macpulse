@@ -18,6 +18,18 @@ enum LaunchAgent {
         FileManager.default.fileExists(atPath: plistURL.path)
     }
 
+    /// Reads the configured daily check time from the installed plist, if present.
+    static var installedSchedule: (hour: Int, minute: Int)? {
+        guard let data = try? Data(contentsOf: plistURL),
+              let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any],
+              let interval = plist["StartCalendarInterval"] as? [String: Any],
+              let hour = interval["Hour"] as? Int,
+              let minute = interval["Minute"] as? Int else {
+            return nil
+        }
+        return (hour: hour, minute: minute)
+    }
+
     /// Writes the plist and loads it. Returns an error message on failure.
     @discardableResult
     static func install(hour: Int = 9, minute: Int = 0) -> String? {

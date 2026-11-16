@@ -1,0 +1,11 @@
+  +-o AppleSmartBattery  <class AppleSmartBattery, id 0x100000301, registered, matched, active, busy 0 (0 ms), retain 7>
+    {
+      "ExternalConnected" = Yes
+      "IsCharging" = No
+      "CurrentCapacity" = 4200
+      "MaxCapacity" = 4800
+      "DesignCapacity" = 5000
+      "CycleCount" = 120
+      "AppleRawMaxCapacity" = 4800
+      "TimeRemaining" = 0
+    }

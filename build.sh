@@ -7,6 +7,14 @@ BUILD="$ROOT/build"
 APP="$BUILD/MacPulse.app"
 SDK="$(xcrun --show-sdk-path)"
 DEPLOY_TARGET="13.0"
+CACHE_DIR="${TMPDIR:-/tmp}/macpulse-module-cache"
+mkdir -p "$CACHE_DIR"
+
+# Sources live in Sources/ and Sources/Probes/, so collect them recursively.
+SOURCES=()
+while IFS= read -r file; do
+  SOURCES+=("$file")
+done < <(find "$ROOT/Sources" -name '*.swift' | sort)
 
 echo "▸ Cleaning…"
 rm -rf "$BUILD"
@@ -14,19 +22,23 @@ mkdir -p "$BUILD/bin" "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 echo "▸ Compiling arm64…"
 swiftc -swift-version 5 -O -parse-as-library \
+  -module-cache-path "$CACHE_DIR" \
+  -Xcc -fmodules-cache-path="$CACHE_DIR" \
   -target "arm64-apple-macos${DEPLOY_TARGET}" \
   -sdk "$SDK" \
   -framework SwiftUI -framework AppKit \
-  "$ROOT"/Sources/*.swift \
+  "${SOURCES[@]}" \
   -o "$BUILD/bin/MacPulse-arm64"
 
 BINARY="$BUILD/bin/MacPulse-arm64"
 
 if swiftc -swift-version 5 -O -parse-as-library \
+    -module-cache-path "$CACHE_DIR" \
+    -Xcc -fmodules-cache-path="$CACHE_DIR" \
     -target "x86_64-apple-macos${DEPLOY_TARGET}" \
     -sdk "$SDK" \
     -framework SwiftUI -framework AppKit \
-    "$ROOT"/Sources/*.swift \
+    "${SOURCES[@]}" \
     -o "$BUILD/bin/MacPulse-x86_64" 2>/dev/null; then
   echo "▸ Building universal binary…"
   lipo -create "$BUILD/bin/MacPulse-arm64" "$BUILD/bin/MacPulse-x86_64" -output "$APP/Contents/MacOS/MacPulse"
@@ -62,7 +74,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 PLIST
 
 echo "▸ Rendering icon…"
-swiftc -O "$ROOT/Tools/MakeIcon.swift" -o "$BUILD/makeicon"
+swiftc -O -module-cache-path "$CACHE_DIR" -Xcc -fmodules-cache-path="$CACHE_DIR" "$ROOT/Tools/MakeIcon.swift" -o "$BUILD/makeicon"
 "$BUILD/makeicon" "$BUILD/icon-1024.png"
 ICONSET="$BUILD/AppIcon.iconset"
 mkdir -p "$ICONSET"
@@ -76,7 +88,9 @@ sips -z 256 256   "$BUILD/icon-1024.png" --out "$ICONSET/icon_256x256.png"    >/
 sips -z 512 512   "$BUILD/icon-1024.png" --out "$ICONSET/icon_256x256@2x.png" >/dev/null
 sips -z 512 512   "$BUILD/icon-1024.png" --out "$ICONSET/icon_512x512.png"    >/dev/null
 cp "$BUILD/icon-1024.png" "$ICONSET/icon_512x512@2x.png"
-iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
+if ! iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns" 2>/dev/null; then
+  python3 "$ROOT/Tools/pack-icns.py" "$ICONSET" "$APP/Contents/Resources/AppIcon.icns"
+fi
 
 echo "▸ Signing (ad-hoc)…"
 codesign --force --sign - --identifier com.macpulse.app "$APP" >/dev/null 2>&1 || true

@@ -20,6 +20,11 @@ struct MacPulseUI: App {
                 .keyboardShortcut("r", modifiers: .command)
             }
         }
+
+        Settings {
+            SettingsView()
+                .environmentObject(model)
+        }
     }
 }
 
