@@ -280,23 +280,28 @@ The engine is now device-generic; the remaining work is polish and test coverage
 
 **GitHub only. Every feature stays in one build. No App Store edition.**
 
-- Repo: `ShishirShekhar/macpulse` (name pending final confirmation).
-- License: **MIT**.
+- Repo: <https://github.com/ShishirShekhar/macpulse> — public, MIT.
+- License: **MIT** (`LICENSE`), copyright 2026 Shishir Shekhar.
 - Minimum macOS: **13 Ventura**; universal arm64 + x86_64.
-- Bundle ID: `com.macpulse.app` placeholder until the first tagged release; changing it
-  later resets TCC permissions, so finalize before v1.0.0.
-- Contents: `Sources/`, `Tools/`, `Tests/`, `build.sh`, `AGENTS.md`, `README.md`,
-  `LICENSE`, `CONTRIBUTING.md`, `SECURITY.md`, `.github/workflows/`, `.gitignore`.
-- CI: macOS runner; build universal; run tests; upload the zipped `.app`.
-- Release: tag → GitHub Release with a zipped `.app` and checksums.
+- Bundle ID: `com.macpulse.app` for the GitHub build. It only needs changing if
+  distribution changes; doing so resets TCC permissions.
+- Contents: `Sources/`, `Tools/`, `build.sh`, `AGENTS.md`, `README.md`, `LICENSE`,
+  `CONTRIBUTING.md`, `SECURITY.md`, `.github/workflows/`, `.gitignore`, issue and PR
+  templates.
+- CI: `.github/workflows/build.yml` runs on `macos-latest`, builds universal, validates
+  the headless JSON, verifies the bundle, and uploads `MacPulse.app` as an artifact.
+  **Verified green on 2026-11-16** (52 s). Unit tests are still to be added.
+- Release: `.github/workflows/release.yml` runs on a `v*` tag, builds, optionally signs
+  and notarizes when secrets exist, then publishes a zipped `.app` + `checksums.txt`.
+- First release: tag **v1.0.0**, assets `MacPulse-v1.0.0.zip` and `checksums.txt`.
 
 **Signing reality:** there is no Apple Developer Program membership and no signing
 identity on the dev machine, so releases are **ad-hoc signed, not notarized**. Users
-who download a release will hit Gatekeeper; the README must give the exact
-right-click → Open (or `xattr -dr com.apple.quarantine`) steps, or they can build from
-source with `./build.sh --install`. The release workflow must be written so that
-Developer ID signing + notarization can be enabled later by adding secrets, without
-restructuring. Enrolling in the Developer Program is optional and deferred.
+who download a release will hit Gatekeeper; README gives the exact right-click → Open
+(or `xattr -dr com.apple.quarantine`) steps, or they can build from source with
+`./build.sh --install`. The release workflow already accepts Developer ID and
+notarytool secrets, so enrollment can be added later without restructuring.
+Enrolling in the Developer Program is optional and deferred.
 
 **App Store is explicitly out of scope** (user decision). Do not add sandbox/Lite
 targets, App Store metadata, or store-specific code. The sandbox limitation table is
@@ -337,18 +342,19 @@ user's apps. Tests are still missing, so "all tests pass" remains open.
 - [ ] Localization scaffolding (English first; strings in one catalogue).
 - [ ] Dark/light and window-size QA; empty/error states.
 
-### Phase 3 — GitHub release (next)
-- [ ] `git init`, `.gitignore`, LICENSE, CONTRIBUTING, SECURITY, issue templates.
-- [ ] CI build on macOS runners (tests to be added when the test target exists).
-- [ ] Release workflow that works unsigned today and accepts Developer ID secrets later.
+### Phase 3 — GitHub release (done)
+- [x] `git init`, `.gitignore`, LICENSE, CONTRIBUTING, SECURITY, issue templates.
+- [x] CI build on macOS runners (tests to be added when the test target exists).
+- [x] Release workflow that works unsigned today and accepts Developer ID secrets later.
+- [x] Push to <https://github.com/ShishirShekhar/macpulse> (public, MIT).
 - [ ] Tag v1.0.0, publish zipped `.app` + checksums + release notes.
 
 ### Phase 4 — Release hardening
-- [ ] Signing-ready release workflow (Developer ID + notarization behind secrets;
+- [x] Signing-ready release workflow (Developer ID + notarization behind secrets;
       works unsigned today).
-- [ ] Zipped `.app` + checksums + release notes on GitHub Releases.
+- [x] Zipped `.app` + checksums + release notes on GitHub Releases.
 - [ ] Homebrew cask (optional, after first release).
-- [ ] Gatekeeper instructions in README; support/security docs.
+- [x] Gatekeeper instructions in README; support/security docs.
 
 ### Phase 5 — After launch
 - [ ] More rules (Time Machine, backupd, Spotlight actual activity, DNS, SMB, MDM).
@@ -359,16 +365,14 @@ user's apps. Tests are still missing, so "all tests pass" remains open.
 
 ## 10. Decisions needed
 
-Only one remains:
+None. All launch decisions are resolved (2026-11-16): GitHub-only distribution, every
+feature in one build, app-level quit suggestions allowed, no Apple Developer Program for
+now (unsigned releases), MIT license, macOS 13 minimum.
 
-1. **Bundle ID**: keep `com.macpulse.app` until the first tagged release, then decide
-   (`io.github.shishirshekhar.macpulse` is the safe recommendation if no domain is
-   owned). Changing it resets TCC permissions.
-
-Resolved 2026-11-16: GitHub-only distribution, every feature, app-level fixes allowed,
-no Apple Developer Program for now (unsigned releases), MIT license, macOS 13 minimum.
-
-Do not start a refactor whose design depends on the bundle ID before it is final.
+**Bundle ID is final: `com.macpulse.app`.** It stays for the GitHub build because the
+app is not distributed through any store; changing it later would only reset TCC
+permissions and gain nothing. Revisit only if distribution changes (for example a
+Developer ID rebrand), and do it before a tagged release if it ever changes.
 
 ---
 
@@ -389,7 +393,7 @@ Do not start a refactor whose design depends on the bundle ID before it is final
 | 2026-11-16 | Graceful app Quit as a native action | Powerful without force-killing or losing work |
 | 2026-11-16 | Undo command + Recent Activity | Reversible actions build trust |
 | 2026-11-16 | Conservative helper detection | Never offer to disable unknown/Apple services |
-| _pending_ | Bundle ID finalized before v1.0.0 | TCC stability |
+| 2026-11-16 | Bundle ID stays `com.macpulse.app` | No store distribution; avoids TCC resets |
 
 ---
 

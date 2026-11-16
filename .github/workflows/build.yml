@@ -14,7 +14,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Show toolchain
         run: |
@@ -33,7 +33,7 @@ jobs:
           plutil -p build/MacPulse.app/Contents/Info.plist
 
       - name: Upload the app
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: MacPulse-app
           path: build/MacPulse.app
