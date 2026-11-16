@@ -12,7 +12,9 @@
 
 ## Verification
 
-- [ ] `./build.sh` succeeds.
+- [ ] `./test.sh` succeeds with all unit tests passing.
+- [ ] `./build.sh` succeeds with no warnings.
 - [ ] `python3 Tools/verify-json.py` passes.
+- [ ] Follows commit conventions (`<type>(<scope>): <subject>`) defined in `AGENTS.md` and `CONTRIBUTING.md`.
 - [ ] UI checked at 920×640 and a larger window, light and dark.
 - [ ] Tested on: <!-- e.g. M1 laptop, Intel desktop, or "dev machine only" -->

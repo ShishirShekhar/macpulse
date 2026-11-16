@@ -1,0 +1,13 @@
+# <type>(<scope>): <short imperative summary> (max 72 chars)
+# │       │       │
+# │       │       └─ Lowercase, imperative ("add", "fix", "update"), no period
+# │       └───────── probes, rules, scoring, ui, settings, tests, ci, shell, launchagent
+# └───────────────── feat, fix, refactor, test, docs, chore, perf
+#
+# Optional detailed body explaining WHY and WHAT changed:
+# - What problem does this solve?
+# - Any safety or reversibility implications?
+# - Tested with ./test.sh and ./build.sh
+#
+# Optional issue references:
+# Closes #123

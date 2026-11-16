@@ -19,21 +19,52 @@ truth for architecture, state, rules and roadmap.
 
 ## Build and test
 
+Before committing any change, verify that both the test suite and universal build succeed:
+
 ```bash
+./test.sh                 # runs all unit tests with fixtures (62 tests)
 ./build.sh                # build into build/, run a headless scan
-./build.sh --install      # install to /Applications and launch
-python3 Tools/verify-json.py
+./build.sh --install      # optional: install to /Applications and launch
 ```
 
 For UI changes, verify the window at 920×640 and a larger size, in light and dark
 mode, and check that status is never conveyed by colour alone.
 
+## Commit message standards
+
+MacPulse follows the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+
+```
+<type>(<scope>): <short imperative summary>
+
+[optional body explaining motivation and technical context]
+```
+
+- **Types:**
+  - `feat`: User-facing features, rules, or settings.
+  - `fix`: Bug fixes in rules, scoring, probes, or UI.
+  - `refactor`: Internal restructuring with no user-visible behavior change.
+  - `test`: Adding or updating test cases, fixtures, or runners.
+  - `docs`: Documentation updates (`AGENTS.md`, `README.md`, `CHANGELOG.md`).
+  - `chore`: Tooling, build scripts, CI workflows, `.gitignore`.
+  - `perf`: Performance optimizations.
+- **Scopes:** `probes`, `rules`, `scoring`, `ui`, `settings`, `tests`, `ci`, `shell`, `launchagent`, `model`.
+- **Subject:** Imperative mood ("add", "fix", "update"), lowercase after the colon, no trailing period, max 72 characters.
+
+### Change rules (what each commit must have)
+
+- **Atomic commits:** Exactly one logical change per commit. Never mix refactoring, dependency updates, and feature changes.
+- **The Green Gate:** Always run `./test.sh` and `./build.sh` before staging. Never commit failing code or broken tests.
+- **No stray files:** Do not commit `build/`, `.build/`, `.DS_Store`, or log files.
+- **Tests required:** New probes, rules, parsers, or scoring changes must include unit tests and fixtures in `Tests/`.
+- **Keep `AGENTS.md` in sync:** Update `AGENTS.md` in the same commit whenever state, architecture, or rules change.
+
 ## Pull requests
 
-- One concern per pull request; imperative commit messages.
+- One concern per pull request; branch names follow `<type>/<kebab-case-name>`.
+- Follow the commit conventions above.
 - Describe the user-visible effect and any change to the rule catalogue.
 - Include the exact command a fix runs, and its undo path, in the description.
-- Do not edit `build/` or `.DS_Store`.
 
 ## Reporting bugs
 

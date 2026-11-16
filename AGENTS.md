@@ -434,42 +434,67 @@ Developer ID rebrand), and do it before a tagged release if it ever changes.
 
 ---
 
-## 12. How agents should work
+## 12. How agents and contributors should work (Commit & Change Standard)
 
-**Read order:** this file → the specific source file you will change → `git log` (once
-a repo exists). Do **not** re-read the whole codebase to answer a state question; §2,
-§5 and §9 should be enough. Keep them current when you change behavior.
+Both AI agents and human contributors must follow these commit, change, and verification standards.
 
-**Change rules**
+### Commit message format
 
-- One concern per commit; imperative commit messages (`Add rule engine`, not `stuff`).
-- No third-party dependencies unless unavoidable; no Electron/web wrappers.
-- Keep the app buildable with CLT-only: no `@State`, no Xcode-only macros.
-- New rules require: unique ID, applicability predicate, plain-English copy, safe
-  command (or none), admin flag, reversibility note, and a test fixture.
-- Never add a fix that runs without a click. Never add network calls to the core.
-- Update `AGENTS.md` §2/§5/§9/§11 in the same commit as the behavior change.
-- Do not edit `build/` (generated) or `.DS_Store` (ignored).
-- Do not change the user's machine state while developing. Test destructive paths in a
-  VM or behind `--dry-run`.
-- If a fact here is wrong, fix it here rather than adding a second doc.
+Every commit must follow the Conventional Commits specification:
 
-**Definition of done**
+```
+<type>(<scope>): <short imperative summary>
 
-1. `./build.sh` succeeds with no warnings.
-2. Headless scan produces valid JSON on the dev machine.
-3. UI loads cached data instantly, scan does not block the main thread.
-4. New/changed rules have tests and fixtures.
+[optional body explaining motivation, technical details, and context]
+
+[optional footer(s), e.g. Closes #12, References #34]
+```
+
+**Allowed types:**
+- `feat`: A new user-facing dashboard feature, rule, or setting (e.g. `feat(settings): add scan time picker`).
+- `fix`: A bug fix in rules, scoring, probes, or UI (e.g. `fix(rules): allow @ symbol in brew service names`).
+- `refactor`: Code restructuring with no user-visible behavior change (e.g. `refactor(probes): split SystemCheck into typed probes`).
+- `test`: Adding or updating test cases, fixtures, or test runner (e.g. `test(rules): add battery service fixtures`).
+- `docs`: Documentation updates only (e.g. `docs: update AGENTS.md with Phase 1 status`).
+- `chore`: Tooling, build scripts, CI workflow updates, `.gitignore` (e.g. `chore(ci): run test.sh in build workflow`).
+- `perf`: Performance optimization (e.g. `perf(probe): cache sysctl lookups`).
+
+**Allowed scopes (optional, recommended):**
+`probes`, `rules`, `scoring`, `ui`, `settings`, `tests`, `ci`, `shell`, `launchagent`, `model`.
+
+**Subject line rules:**
+- Imperative, present tense: "add", "fix", "update", "prevent" (NOT "added", "adds", "fixing").
+- Lowercase first character after the colon.
+- No trailing period.
+- Maximum 72 characters.
+
+### Change rules (what each commit must contain)
+
+1. **Atomic commits**: One commit represents exactly one logical unit of work. Never mix refactoring, formatting sweeps, and functional changes in the same commit.
+2. **The "Green Gate" (Pre-commit check)**: Every commit MUST build cleanly (`./build.sh`) and pass all tests (`./test.sh`) before being committed. Never commit broken code or failing tests.
+3. **No stray files**: Never commit `.build/`, `build/`, `.DS_Store`, temporary binaries, or logs. Always inspect `git status` before staging.
+4. **Test accompaniment**: Any new probe, parser function, rule, or scoring change MUST include unit test coverage in `Tests/RunTests.swift` and fixtures in `Tests/Fixtures/`.
+5. **Single source of truth**: If a change alters rules, architecture, scoring weights, or roadmap status, update `AGENTS.md` within the same commit.
+6. **Toolchain discipline**: Never introduce `@State` into SwiftUI views (use `@StateObject` / `@EnvironmentObject` with an `ObservableObject` because Command Line Tools lack Xcode's `SwiftUIMacros`).
+7. **Safety invariants hold**: No silent fixes, no force-killing apps, no disabling Apple/system daemons, and zero network calls.
+
+### Definition of done
+
+1. `./build.sh` succeeds with no warnings and universal binary intact.
+2. `./test.sh` passes with 0 failures.
+3. Headless scan (`MacPulse --check`) produces valid JSON on the dev machine.
+4. UI loads cached data instantly, background scan does not block the main thread.
 5. Safety invariants in §7 hold; no new permission prompts without copy explaining them.
-6. `AGENTS.md` updated.
+6. `AGENTS.md` updated in the same commit.
 
-**Style**
+### Style
 
 - Swift 5 language mode, macOS 13 availability, SwiftUI + AppKit only.
-- `@MainActor` avoided; publish UI state on the main queue (current pattern).
+- Avoid `@MainActor`; publish UI state on the main queue (`DispatchQueue.main.async`).
 - Copy is short, plain English, no jargon, no fear-mongering, no emoji in UI strings.
 - Colors come from `Theme`; status is never conveyed by color alone.
 - Prefer SF Symbols available on macOS 13.
+- VoiceOver accessibility labels and keyboard shortcuts on interactive controls.
 
 **Testing checklist (manual, until automated)**
 
