@@ -184,10 +184,13 @@ Xcode. SwiftUI's `@State` macro plugin (`SwiftUIMacros`) is missing, so `@State`
 to compile. Use `@StateObject` / `ObservableObject` published properties instead, or
 move local UI state into `AppModel`. This is why `showDeclined` lives in the model.
 
-**Dev environment:** MacBook Air M1 (MacBookAir10,1), 8 GB, macOS 27.0.1, Swift 6.4,
-CLT-only, `gh` authenticated as `ShishirShekhar`, no codesigning identity, no git repo
-yet. The machine's battery is failing — that is a **test fixture**, not a product
-assumption.
+**Dev environment:** MacBook Air M1 (MacBookAir10,1), 8 GB, macOS 27.2.1, Swift 6.4,
+CLT-only, `gh` authenticated as `ShishirShekhar`, no codesigning identity. The machine's
+battery is failing — that is a **test fixture**, not a product assumption.
+
+**Canonical working copy:** `~/Drive/Code/Projects/MacPulse` (moved 2026-11-16 from
+`~/Documents/Default Project/MacPulse`; the git remote and history are unchanged).
+Clone anywhere; only this machine's copy lives there.
 
 ---
 
