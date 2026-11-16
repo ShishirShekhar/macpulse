@@ -323,8 +323,9 @@ kept in §14 for historical context only.
   Projects and Wiki off.
 - Merges: squash and rebase allowed, merge commits off; PR title + body for squash;
   auto-merge on, delete head branch on merge, update branch allowed.
-- **Ruleset "Protect main"**: blocks deletion, force pushes and non-linear history;
-  repository admins can bypass so the solo maintainer is not locked out.
+- **Rulesets**: "Protect main" blocks deletion, force pushes and non-linear history;
+  "Protect release tags" blocks deleting or moving `v*` tags. Repository admins can
+  bypass so the solo maintainer is not locked out.
 - Security: Dependabot alerts + security updates, secret scanning + push protection,
   private vulnerability reporting, `SECURITY.md` and `CODE_OF_CONDUCT.md`.
   Non-provider secret patterns and validity checks are not available on this plan
