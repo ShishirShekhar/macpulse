@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions, ideas and setups
+    url: https://github.com/ShishirShekhar/macpulse/discussions
+    about: Ask a question, share an idea, or show how MacPulse looks on your Mac.
+  - name: Report a security issue privately
+    url: https://github.com/ShishirShekhar/macpulse/security/advisories/new
+    about: Please do not open a public issue for vulnerabilities.

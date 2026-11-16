@@ -1,5 +1,11 @@
 # MacPulse
 
+[![Build](https://github.com/ShishirShekhar/macpulse/actions/workflows/build.yml/badge.svg)](https://github.com/ShishirShekhar/macpulse/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/ShishirShekhar/macpulse?sort=semver)](https://github.com/ShishirShekhar/macpulse/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/ShishirShekhar/macpulse/total)](https://github.com/ShishirShekhar/macpulse/releases)
+[![License: MIT](https://img.shields.io/github/license/ShishirShekhar/macpulse)](LICENSE)
+![Platform: macOS 13+](https://img.shields.io/badge/macOS-13%2B-blue)
+
 A small, native macOS health dashboard. It checks your Mac, explains what is
 slowing it down in plain language, and offers **one-click fixes that you approve
 or decline**. It scans daily in the background and can be run manually at any
@@ -126,3 +132,13 @@ agent files only point there.
 
 Bug reports and pull requests are welcome. Please keep the safety invariants in
 `AGENTS.md` §7 intact.
+
+## Community
+
+- [Discussions](https://github.com/ShishirShekhar/macpulse/discussions) — questions,
+  ideas and setups.
+- [Support](SUPPORT.md) — where to ask and what to include.
+- [Contributing](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md).
+- [Changelog](CHANGELOG.md) — release history.
+- [Security policy](SECURITY.md) — report vulnerabilities privately, never in a
+  public issue.
