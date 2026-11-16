@@ -6,10 +6,35 @@ All notable changes to MacPulse are documented here. The format follows
 
 ## [Unreleased]
 
-Planned for the next releases: a Settings window (schedule time, exclusions,
-declined fixes, data reset), scan history with a score trend, first-run
-onboarding, accessibility/VoiceOver pass, unit tests for the parsers and rule
-engine, and localization scaffolding.
+Planned for future releases: scan history with a score trend (last 30 scans),
+first-run onboarding with permission explanation, menu bar extra, and localization.
+
+## [1.1.0] - 2026-11-16
+
+Phase 1 engine generalization, native settings, test suite, and scoring breakdown.
+
+### Added
+
+- Native Settings window (`⌘,` or via header/footer) with configurable daily scan
+  schedule time picker, rule exclusions toggles, declined suggestions manager,
+  advanced command preview toggle, and full data/preference reset.
+- Interactive Score Breakdown view displaying exact deductions for all eight
+  health categories (starts at 100).
+- Modular probe architecture (`Sources/Probes/`) separating typed detection from rules:
+  `CPUProbe`, `MemoryProbe`, `DiskProbe`, `BatteryProbe`, `StartupProbe`, `DisplayProbe`,
+  and `SystemProbe`.
+- Pure parsing and labelling helpers in `ProbeParsers.swift`.
+- Comprehensive Command Line Tools-compatible test suite (`./test.sh`) with 62 unit
+  tests covering parsers, rule applicability, and scoring against realistic fixtures.
+- VoiceOver accessibility labels, hints, and keyboard shortcuts across all cards and
+  action buttons.
+- Packaging fallback (`Tools/pack-icns.py`) for environments with restricted `iconutil`.
+
+### Fixed
+
+- Support for Homebrew service names containing `@` (e.g. `postgresql@14`).
+- Gated WindowServer animation suggestions strictly to interactive scans.
+- Platform-aware battery scoring so desktop Macs without batteries are never penalized.
 
 ## [1.0.0] - 2026-11-16
 
