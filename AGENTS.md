@@ -6,7 +6,7 @@
 > are redirects — they must never duplicate content. If you learn something new,
 > update **this file only**.
 
-Last updated: 2026-11-16 · App version: 1.0 (development build) · Status: generalized engine, feature-complete for GitHub v1; not yet published.
+Last updated: 2026-11-16 · App version: 1.0 · Status: **v1.0.0 published on GitHub** (<https://github.com/ShishirShekhar/macpulse>); roadmap polish (settings, history, onboarding, tests) still open.
 
 ---
 
@@ -69,6 +69,10 @@ or anything that silently changes system settings.
   permission, instead of being overwritten with an empty list.
 - Full headless scan measured **2.77 s** on the M1 / 8 GB dev machine; UI stays
   responsive on a background queue.
+- **Published v1.0.0** (2026-11-16): <https://github.com/ShishirShekhar/macpulse/releases/tag/v1.0.0>
+  with `MacPulse-v1.0.0.zip` + `checksums.txt`. The downloaded artifact was verified:
+  checksum OK, universal `x86_64 arm64`, ad-hoc signature intact, headless `--check`
+  exits 0 and produces valid JSON.
 - Admin fixes use the standard macOS password dialog via `osascript`.
 - Earlier fixes proven on the dev machine: NotificationCenter reset, sleep timer,
   Homebrew service, vendor login helper, system VPN daemon, login items.
@@ -293,7 +297,10 @@ The engine is now device-generic; the remaining work is polish and test coverage
   **Verified green on 2026-11-16** (52 s). Unit tests are still to be added.
 - Release: `.github/workflows/release.yml` runs on a `v*` tag, builds, optionally signs
   and notarizes when secrets exist, then publishes a zipped `.app` + `checksums.txt`.
-- First release: tag **v1.0.0**, assets `MacPulse-v1.0.0.zip` and `checksums.txt`.
+- First release: tag **v1.0.0** published 2026-11-16 with assets
+  `MacPulse-v1.0.0.zip` and `checksums.txt`, plus hand-written release notes. The
+  workflow ran green (1 m 12 s). To cut a future release, tag `vX.Y.Z` and push the tag;
+  keep `CFBundleShortVersionString` in `build.sh` in sync.
 
 **Signing reality:** there is no Apple Developer Program membership and no signing
 identity on the dev machine, so releases are **ad-hoc signed, not notarized**. Users
@@ -347,7 +354,7 @@ user's apps. Tests are still missing, so "all tests pass" remains open.
 - [x] CI build on macOS runners (tests to be added when the test target exists).
 - [x] Release workflow that works unsigned today and accepts Developer ID secrets later.
 - [x] Push to <https://github.com/ShishirShekhar/macpulse> (public, MIT).
-- [ ] Tag v1.0.0, publish zipped `.app` + checksums + release notes.
+- [x] Tag v1.0.0, publish zipped `.app` + checksums + release notes.
 
 ### Phase 4 — Release hardening
 - [x] Signing-ready release workflow (Developer ID + notarization behind secrets;
