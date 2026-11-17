@@ -157,6 +157,14 @@ enum L10n {
             "rule.mdm.title": "This Mac is managed",
             "rule.mdm.detail": "An organization manages this Mac through mobile device management. Some settings are controlled remotely and cannot be changed here. MacPulse never disables MDM, profiles or security settings.",
             "rule.mdm.value": "managed",
+
+            // Power assertions and peripheral battery rules
+            "rule.sleep_caffeinate.title": "Sleep prevented by caffeinate",
+            "rule.sleep_caffeinate.detail": "A background caffeinate process (PID %d) is keeping this Mac awake. Stop it to restore normal system sleep.",
+            "rule.sleep_caffeinate.value": "PID %d",
+            "rule.peripheral.title": "%@ battery low (%d%%)",
+            "rule.peripheral.detail": "%@ is at %d%% battery. Charge or replace batteries soon to prevent disconnection.",
+            "rule.peripheral.value": "%d%%",
         ]
     ]
 

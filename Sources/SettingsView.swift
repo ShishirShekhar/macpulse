@@ -22,7 +22,9 @@ let availableExcludableRules: [ExcludableRuleDef] = [
     ExcludableRuleDef(id: "spotlight", name: "Spotlight indexing", detail: "Explains high CPU while Spotlight indexes new files"),
     ExcludableRuleDef(id: "dns", name: "DNS responder", detail: "Offer to flush the DNS cache when mDNSResponder is busy"),
     ExcludableRuleDef(id: "smb", name: "Network shares", detail: "Advice when a mounted SMB share is using CPU"),
-    ExcludableRuleDef(id: "mdm", name: "Managed Mac", detail: "Information when this Mac is enrolled in mobile device management")
+    ExcludableRuleDef(id: "mdm", name: "Managed Mac", detail: "Information when this Mac is enrolled in mobile device management"),
+    ExcludableRuleDef(id: "sleep-caffeinate", name: "Keep-awake assertions", detail: "Offer to stop caffeinate processes holding wake-locks"),
+    ExcludableRuleDef(id: "peripheral-battery", name: "Accessory battery", detail: "Warnings when connected Bluetooth or HID device battery drops below 20%")
 ]
 
 struct SettingsView: View {

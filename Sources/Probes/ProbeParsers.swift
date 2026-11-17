@@ -383,6 +383,73 @@ enum ProbeParsers {
         return result
     }
 
+    // MARK: - Sleep assertions and peripherals
+
+    static func sleepAssertions(_ output: String) -> SleepAssertionSample {
+        var assertions: [SleepAssertion] = []
+        var preventSystemSleep = false
+        var preventDisplaySleep = false
+
+        if let val = capture("PreventUserIdleSystemSleep\\s+(\\d+)", output), let n = Int(val), n > 0 {
+            preventSystemSleep = true
+        }
+        if let val = capture("PreventUserIdleDisplaySleep\\s+(\\d+)", output), let n = Int(val), n > 0 {
+            preventDisplaySleep = true
+        }
+
+        let section = output.components(separatedBy: "Listed by owning process:").last ?? ""
+        let lines = section.components(separatedBy: "\n")
+
+        let pattern = "^\\s*pid\\s+(\\d+)\\(([^)]+)\\):\\s*\\[[^\\]]+\\]\\s*(?:[\\d:]+\\s+)?([A-Za-z0-9_-]+)(?:\\s+named:\\s*\"?([^\"\\n]+)\"?)?"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+            return SleepAssertionSample(assertions: [], preventSystemSleep: preventSystemSleep, preventDisplaySleep: preventDisplaySleep)
+        }
+
+        for line in lines {
+            let ns = line as NSString
+            guard let match = regex.firstMatch(in: line, options: [], range: NSRange(location: 0, length: ns.length)),
+                  match.numberOfRanges > 3 else {
+                continue
+            }
+            let pidStr = ns.substring(with: match.range(at: 1))
+            guard let pid = Int(pidStr) else { continue }
+            let process = ns.substring(with: match.range(at: 2))
+            let assertionType = ns.substring(with: match.range(at: 3))
+            var name = ""
+            if match.numberOfRanges > 4 && match.range(at: 4).location != NSNotFound {
+                name = ns.substring(with: match.range(at: 4))
+            }
+            assertions.append(SleepAssertion(
+                pid: pid,
+                process: process,
+                assertionType: assertionType,
+                name: name
+            ))
+        }
+
+        return SleepAssertionSample(
+            assertions: assertions,
+            preventSystemSleep: preventSystemSleep,
+            preventDisplaySleep: preventDisplaySleep
+        )
+    }
+
+    static func peripheralBatteries(_ ioregOutput: String) -> [PeripheralBattery] {
+        var results: [PeripheralBattery] = []
+        let blocks = ioregOutput.components(separatedBy: "}")
+        for block in blocks {
+            guard let name = capture("\"(?:Product|DeviceProduct)\"\\s*=\\s*\"([^\"]+)\"", block),
+                  let percentStr = capture("\"BatteryPercent\"\\s*=\\s*(\\d+)", block),
+                  let percent = Int(percentStr) else {
+                continue
+            }
+            if !results.contains(where: { $0.name == name }) {
+                results.append(PeripheralBattery(name: name, percent: percent))
+            }
+        }
+        return results
+    }
+
     // MARK: - Naming
 
     static func friendlyModel(_ identifier: String, chip: String) -> String {

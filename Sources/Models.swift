@@ -97,6 +97,10 @@ struct CheckResult: Codable {
     /// The detected device profile is stored so the UI and later runs know what
     /// kind of Mac produced this scan.
     var profile: DeviceProfile? = nil
+    /// Active sleep assertions preventing system or display sleep.
+    var sleepAssertions: [SleepAssertion]? = nil
+    /// Connected Bluetooth and HID peripherals reporting battery levels.
+    var peripherals: [PeripheralBattery]? = nil
 }
 
 extension CheckResult {
@@ -123,6 +127,12 @@ extension CheckResult {
     }
 
     var batteryStatus: Status {
+        if let peripherals = peripherals, peripherals.contains(where: { $0.percent <= 10 }) {
+            return .bad
+        }
+        if let peripherals = peripherals, peripherals.contains(where: { $0.percent <= 20 }) {
+            return .warn
+        }
         if batteryCondition == "No battery" { return .good }
         if batteryCondition == "Normal" && batteryHealthPct >= 80 { return .good }
         if batteryHealthPct >= 60 { return .warn }
@@ -152,6 +162,9 @@ extension CheckResult {
     }
 
     var sleepStatus: Status {
+        if let assertions = sleepAssertions, assertions.contains(where: { $0.process == "caffeinate" }) {
+            return .warn
+        }
         if acSleepMinutes <= 0 || acSleepMinutes > 10 { return .good }
         if acSleepMinutes > 5 { return .warn }
         return .bad
@@ -188,6 +201,14 @@ extension CheckResult {
         }
         if notificationCPU > 5 {
             items.append("Notification Center is using \(Int(notificationCPU))% CPU")
+        }
+        if let assertions = sleepAssertions, assertions.contains(where: { $0.process == "caffeinate" }) {
+            items.append("Sleep is prevented by background caffeinate process")
+        }
+        if let peripherals = peripherals {
+            for p in peripherals where p.percent <= 20 {
+                items.append("\(p.name) battery is low (\(p.percent)%)")
+            }
         }
         return items
     }

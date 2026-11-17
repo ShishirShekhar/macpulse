@@ -33,6 +33,10 @@ struct RuleContext {
     var smbCPU: Double = 0
     var smbMounts: [String] = []
     var mdmEnrolled: Bool = false
+
+    // Power assertions and peripheral battery sources
+    var sleepAssertions: [SleepAssertion] = []
+    var peripherals: [PeripheralBattery] = []
 }
 
 enum Rules {
@@ -317,6 +321,39 @@ enum Rules {
                 admin: false,
                 value: L10n.t("rule.login.value")
             ))
+        }
+
+        // Sleep assertions (e.g. caffeinate preventing idle sleep)
+        for assertion in context.sleepAssertions {
+            if assertion.process == "caffeinate" {
+                fixes.append(FixSuggestion(
+                    id: "sleep-caffeinate-\(assertion.pid)",
+                    title: L10n.t("rule.sleep_caffeinate.title"),
+                    detail: L10n.t("rule.sleep_caffeinate.detail", assertion.pid),
+                    severity: .medium,
+                    command: "kill \(assertion.pid)",
+                    admin: false,
+                    value: L10n.t("rule.sleep_caffeinate.value", assertion.pid)
+                ))
+            }
+        }
+
+        // Peripheral batteries low (keyboard, mouse, trackpad)
+        for peripheral in context.peripherals {
+            if peripheral.percent <= 20 {
+                let slug = peripheral.name.lowercased()
+                    .replacingOccurrences(of: " ", with: "-")
+                    .replacingOccurrences(of: "[^a-z0-9_-]", with: "", options: .regularExpression)
+                fixes.append(FixSuggestion(
+                    id: "peripheral-battery-\(slug)",
+                    title: L10n.t("rule.peripheral.title", peripheral.name, peripheral.percent),
+                    detail: L10n.t("rule.peripheral.detail", peripheral.name, peripheral.percent),
+                    severity: peripheral.percent <= 10 ? .high : .medium,
+                    command: "",
+                    admin: false,
+                    value: L10n.t("rule.peripheral.value", peripheral.percent)
+                ))
+            }
         }
 
         return fixes.sorted { (severityOrder[$0.severity] ?? 3) < (severityOrder[$1.severity] ?? 3) }

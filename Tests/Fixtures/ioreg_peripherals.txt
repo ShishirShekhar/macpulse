@@ -1,0 +1,12 @@
++-o Magic Mouse  <class AppleDeviceManagementHIDEventService, id 0x100001234, registered, matched, active, busy 0 (0 ms), retain 11>
+  {
+    "Product" = "Magic Mouse"
+    "BatteryPercent" = 85
+    "DeviceAddress" = "00-11-22-33-44-55"
+  }
++-o Magic Keyboard  <class AppleDeviceManagementHIDEventService, id 0x100001235, registered, matched, active, busy 0 (0 ms), retain 11>
+  {
+    "Product" = "Magic Keyboard"
+    "BatteryPercent" = 15
+    "DeviceAddress" = "66-77-88-99-aa-bb"
+  }

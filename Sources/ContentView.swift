@@ -545,10 +545,8 @@ struct MetricGrid: View {
             MetricCard(
                 icon: batterySymbol,
                 title: "Battery",
-                value: result.batteryCondition == "No battery" ? "No battery" : "\(Int(result.batteryHealthPct))% health",
-                caption: result.batteryCondition == "No battery"
-                    ? "Desktop Mac — running on power"
-                    : "\(result.batteryCycles) cycles · \(result.batteryCondition) · \(result.batteryCharge)%",
+                value: batteryValue,
+                caption: batteryCaption,
                 status: result.batteryStatus
             )
             MetricCard(
@@ -576,10 +574,44 @@ struct MetricGrid: View {
                 icon: "moon.zzz.fill",
                 title: "Auto-sleep (AC)",
                 value: result.acSleepMinutes <= 0 ? "Never" : "\(result.acSleepMinutes) min",
-                caption: "Applies while on the power adapter",
+                caption: sleepCaption,
                 status: result.sleepStatus
             )
         }
+    }
+
+    private var batteryValue: String {
+        if result.batteryCondition == "No battery" {
+            if let peripherals = result.peripherals, !peripherals.isEmpty {
+                return "\(peripherals.count) accessory\(peripherals.count == 1 ? "" : "ies")"
+            }
+            return "No battery"
+        }
+        return "\(Int(result.batteryHealthPct))% health"
+    }
+
+    private var batteryCaption: String {
+        let periphStr = (result.peripherals ?? []).map { "\($0.name): \($0.percent)%" }.joined(separator: " · ")
+        if result.batteryCondition == "No battery" {
+            if !periphStr.isEmpty {
+                return periphStr
+            }
+            return "Desktop Mac — running on power"
+        }
+        if !periphStr.isEmpty {
+            return "\(result.batteryCycles) cycles · \(periphStr)"
+        }
+        return "\(result.batteryCycles) cycles · \(result.batteryCondition) · \(result.batteryCharge)%"
+    }
+
+    private var sleepCaption: String {
+        if let assertions = result.sleepAssertions, assertions.contains(where: { $0.process == "caffeinate" }) {
+            return "Sleep blocked by caffeinate"
+        }
+        if let assertions = result.sleepAssertions, !assertions.isEmpty {
+            return "\(assertions.count) sleep assertion\(assertions.count == 1 ? "" : "s") active"
+        }
+        return "Applies while on the power adapter"
     }
 
     private var batterySymbol: String {
@@ -1070,7 +1102,7 @@ struct Footer: View {
             .buttonStyle(.link)
             .font(.system(size: 11))
 
-            Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.3.0")")
+            Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.4.0")")
                 .font(.system(size: 10))
                 .foregroundStyle(.tertiary)
         }

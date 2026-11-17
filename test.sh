@@ -29,6 +29,8 @@ TEST_SOURCES=(
   "$ROOT/Sources/Probes/DisplayProbe.swift"
   "$ROOT/Sources/Probes/BackupProbe.swift"
   "$ROOT/Sources/Probes/ManagementProbe.swift"
+  "$ROOT/Sources/Probes/SleepProbe.swift"
+  "$ROOT/Sources/Probes/PeripheralProbe.swift"
   "$ROOT/Sources/Probes/SystemProbe.swift"
   "$ROOT/Sources/SystemCheck.swift"
   "$ROOT/Tests/RunTests.swift"
