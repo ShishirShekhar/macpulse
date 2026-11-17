@@ -113,6 +113,8 @@ extension L10n {
         "onboarding.start": "MacPulse starten",
         "onboarding.subtitle": "Ein schneller, privater System-Check für deinen Mac. Alles läuft lokal auf diesem Mac und nichts wird hochgeladen.",
         "onboarding.title": "Willkommen bei MacPulse",
+        "report.copied": "Diagnosebericht in die Zwischenablage kopiert",
+        "report.copy": "Diagnosebericht kopieren",
         "rule.backup.detail": "backupd verbraucht %d%% CPU während des Kopiervorgangs. Dies ist normal und endet bald.",
         "rule.backup.title": "Time Machine sichert Daten",
         "rule.backup.value": "%d%% CPU",

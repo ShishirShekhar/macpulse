@@ -23,6 +23,7 @@ TEST_SOURCES=(
   "$ROOT/Sources/History.swift"
   "$ROOT/Sources/ScoreAlert.swift"
   "$ROOT/Sources/UpdateCheck.swift"
+  "$ROOT/Sources/DiagnosticReport.swift"
   "$ROOT/Sources/Probes/ProbeValues.swift"
   "$ROOT/Sources/Probes/ProbeParsers.swift"
   "$ROOT/Sources/Probes/CPUProbe.swift"

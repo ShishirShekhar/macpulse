@@ -113,6 +113,8 @@ extension L10n {
         "onboarding.start": "MacPulse を始める",
         "onboarding.subtitle": "Mac の状態を素早く安全に診断します。すべての処理はローカルで実行され、外部に送信されることはありません。",
         "onboarding.title": "MacPulse へようこそ",
+        "report.copied": "診断レポートをクリップボードにコピーしました",
+        "report.copy": "診断レポートをコピー",
         "rule.backup.detail": "backupd が CPU を %d%% 使用して変更をコピーしています。完了すると落ち着きます。",
         "rule.backup.title": "Time Machine がバックアップ中",
         "rule.backup.value": "%d%% CPU",

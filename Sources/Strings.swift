@@ -127,6 +127,8 @@ enum L10n {
             "common.restore": "Restore",
             "common.restoreAll": "Restore All",
             "common.undo": "Undo",
+            "report.copy": "Copy Diagnostic Report",
+            "report.copied": "Diagnostic report copied to clipboard",
             "dashboard.activity.undone": "UNDONE",
             "dashboard.declinedCount": "%d declined",
             "dashboard.noProcessData": "No process data available",

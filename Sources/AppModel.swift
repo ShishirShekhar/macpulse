@@ -573,6 +573,19 @@ final class AppModel: ObservableObject {
         }
     }
 
+    func copyDiagnosticReport() {
+        guard let result = result else {
+            banner = Banner(text: "No scan data available to export", kind: .info)
+            scheduleBannerClear()
+            return
+        }
+        let currentVer = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.7.0"
+        let report = DiagnosticReport.generate(from: result, appVersion: currentVer)
+        DiagnosticReport.copyToClipboard(report)
+        banner = Banner(text: L10n.t("report.copied"), kind: .success)
+        scheduleBannerClear()
+    }
+
     func resetAllData() {
         SystemCheck.clearCache()
         HistoryStore.clear()

@@ -1087,9 +1087,18 @@ struct Footer: View {
             Spacer()
 
             Button {
+                model.copyDiagnosticReport()
+            } label: {
+                Label(L10n.t("report.copy"), systemImage: "doc.on.doc")
+            }
+            .buttonStyle(.link)
+            .font(.system(size: 11))
+            .disabled(model.result == nil)
+
+            Button {
                 model.showSettings = true
             } label: {
-                Label("Settings", systemImage: "gearshape")
+                Label(L10n.t("common.settings"), systemImage: "gearshape")
             }
             .buttonStyle(.link)
             .font(.system(size: 11))

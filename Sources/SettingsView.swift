@@ -391,6 +391,25 @@ struct SettingsView: View {
 
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
+                            Text(L10n.t("report.copy"))
+                                .font(.system(size: 13, weight: .medium))
+                            Text("Copies a clean, privacy-preserving markdown health report to your clipboard.")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button(L10n.t("report.copy")) {
+                            model.copyDiagnosticReport()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(model.result == nil)
+                    }
+
+                    Divider()
+
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
                             Text(L10n.t("settings.advanced.reset.title"))
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundStyle(Theme.bad)
