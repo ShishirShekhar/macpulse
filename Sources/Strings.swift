@@ -117,6 +117,12 @@ enum L10n {
             "updates.download": "View Release",
             "updates.failed": "Could not check for updates. Check your internet connection.",
 
+            // Language selector
+            "settings.language.title": "Language",
+            "settings.language.label": "Display language:",
+            "settings.language.system": "System Default",
+            "settings.language.detail": "Choose a specific language or use your macOS system language.",
+
             // Empty and error states
             "empty.title": "No scan yet",
             "empty.body": "Run a check to see this Mac's score, metrics and recommended fixes.",

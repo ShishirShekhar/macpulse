@@ -107,6 +107,13 @@ final class AppModel: ObservableObject {
     @Published var isCheckingForUpdates = false
     @Published var updateStatus: String?
     @Published var availableUpdate: UpdateCheck.ReleaseInfo?
+    @Published var selectedLanguage: String = "system" {
+        didSet {
+            UserDefaults.standard.set(selectedLanguage, forKey: selectedLanguageKey)
+            L10n.overrideLanguage = selectedLanguage == "system" ? nil : selectedLanguage
+            objectWillChange.send()
+        }
+    }
 
     private let declinedKey = "declinedFixIDs"
     private let excludedRulesKey = "excludedRuleIDs"
@@ -115,6 +122,7 @@ final class AppModel: ObservableObject {
     private let scheduleMinuteKey = "scheduleMinute"
     private let onboardingKey = "hasCompletedOnboarding"
     private let menuBarKey = "menuBarEnabled"
+    private let selectedLanguageKey = "appLanguage"
     private var hasCompletedOnboarding = false
     private var bannerToken = UUID()
 
@@ -128,6 +136,9 @@ final class AppModel: ObservableObject {
         scoreNotificationThreshold = defaults.object(forKey: Notifications.thresholdKey) as? Int
             ?? Notifications.defaultThreshold
         checkForUpdates = defaults.bool(forKey: UpdateCheck.enabledKey)
+        let savedLanguage = defaults.string(forKey: selectedLanguageKey) ?? "system"
+        selectedLanguage = savedLanguage
+        L10n.overrideLanguage = savedLanguage == "system" ? nil : savedLanguage
         history = HistoryStore.load()
 
         if let savedSchedule = LaunchAgent.installedSchedule {
@@ -227,7 +238,7 @@ final class AppModel: ObservableObject {
         if manual {
             updateStatus = L10n.t("updates.checking")
         }
-        let currentVer = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.5.0"
+        let currentVer = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.6.0"
         UpdateCheck.check(currentVersion: currentVer) { [weak self] result in
             DispatchQueue.main.async {
                 guard let self = self else { return }
@@ -583,6 +594,9 @@ final class AppModel: ObservableObject {
         UserDefaults.standard.removeObject(forKey: menuBarKey)
         UserDefaults.standard.removeObject(forKey: Notifications.enabledKey)
         UserDefaults.standard.removeObject(forKey: Notifications.thresholdKey)
+        selectedLanguage = "system"
+        L10n.overrideLanguage = nil
+        UserDefaults.standard.removeObject(forKey: selectedLanguageKey)
         banner = Banner(text: "All MacPulse data and preferences reset", kind: .info)
         scheduleBannerClear()
     }
