@@ -82,6 +82,31 @@ struct DisplaySample {
     let notificationCPU: Double
     let heavyApps: [HeavyApp]
     let spotlightIndexing: Bool
+    /// Aggregate CPU for processes that are never offered as app quits but are
+    /// worth explaining: backups, indexing, DNS and SMB traffic.
+    let backupdCPU: Double
+    let spotlightCPU: Double
+    let dnsCPU: Double
+    let smbCPU: Double
+    /// Mount points of currently mounted SMB shares, used for advice copy.
+    let smbMounts: [String]
+}
+
+/// Time Machine state. A Mac with no backup disk is not failing, so this only
+/// ever produces advice or a user-approved "start a backup" action.
+struct BackupSample: Equatable {
+    let hasDestination: Bool
+    let lastBackup: Date?
+
+    static let unknown = BackupSample(hasDestination: false, lastBackup: nil)
+}
+
+/// Whether this Mac is managed by an organization. MacPulse never changes
+/// management settings; the rule is informational only.
+struct ManagementSample: Equatable {
+    let mdmEnrolled: Bool
+
+    static let unmanaged = ManagementSample(mdmEnrolled: false)
 }
 
 struct StartupSample {

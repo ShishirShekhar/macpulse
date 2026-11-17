@@ -6,7 +6,7 @@
 > are redirects — they must never duplicate content. If you learn something new,
 > update **this file only**.
 
-Last updated: 2026-11-17 · App version: 1.2.0 · Status: **Phase 1 and Phase 2 complete; v1.2.0 published** (<https://github.com/ShishirShekhar/macpulse/releases/tag/v1.2.0>).
+Last updated: 2026-11-17 · App version: 1.2.0 · Status: **Phase 1 through Phase 5 complete; v1.2.0 published** (<https://github.com/ShishirShekhar/macpulse/releases/tag/v1.2.0>).
 
 ---
 
@@ -91,8 +91,20 @@ or anything that silently changes system settings.
   `L10n.t(key, args)` with a visible key fallback and tests for every shipped string.
 - **Empty and error states** for no cached scan and partial readings, plus a
   Settings section for history, menu bar, notifications and re-running onboarding.
-- **144 unit tests pass** via `./test.sh` (was 62 before Phase 2). CI already runs
+- **275 unit tests pass** via `./test.sh` (was 144 before Phase 4 & 5). CI runs
   the suite on every push and pull request.
+
+**Phase 4 & Phase 5 added and verified**
+
+- **Homebrew Cask definition** in `Casks/macpulse.rb` for one-line installation.
+- **Expanded diagnostic rules**: Time Machine backup detection (`timemachine-none`,
+  `timemachine-stale`, `backup`), Spotlight indexing activity (`spotlight`), DNS cache
+  flushing (`dns`), SMB share monitoring (`smb`), and MDM enrollment notice (`mdm`).
+- **Comprehensive UI localization**: Dashboard section headers, buttons, labels, and
+  status copy are extracted to `Sources/Strings.swift` and resolved through `L10n`.
+- **Opt-in software updates**: Isolated `Sources/UpdateCheck.swift` checks GitHub
+  Releases when opted in. Off by default; zero telemetry or network calls in core.
+- **Community rule contribution standards** documented in `CONTRIBUTING.md`.
 
 ### Known bugs / incomplete
 
@@ -157,20 +169,22 @@ SystemCheck.collect()                   Sources/SystemCheck.swift
 | `Sources/MacPulseApp.swift` | Entry point, headless `--check`, window + menu commands |
 | `Sources/AppModel.swift` | Observable state, scan orchestration, fix/undo execution, banners |
 | `Sources/SystemCheck.swift` | Probe orchestration, persistence paths, `--check` entry |
-| `Sources/Probes/*.swift` | Typed CPU, memory, disk, battery, display, startup and system probes |
+| `Sources/Probes/*.swift` | Typed CPU, memory, disk, battery, display, startup, backup, MDM and system probes |
 | `Sources/Scoring.swift` | Score weights, subscores and the `ScoreInput` boundary |
 | `Sources/Rules.swift` | Declarative rule catalogue and user-facing fix copy |
 | `Sources/Models.swift` | `CheckResult`, `FixSuggestion`, `DeviceProfile`, `Status`, derived statuses |
 | `Sources/History.swift` | `HistoryEntry`, 30-scan pruning, change summary, `HistoryStore` |
 | `Sources/ScoreAlert.swift` | Pure threshold-crossing policy for the optional alert |
 | `Sources/Notifications.swift` | Local `UNUserNotificationCenter` post/clear helpers |
-| `Sources/Strings.swift` | Single English string catalogue (`L10n`) for Phase 2 surfaces |
+| `Sources/UpdateCheck.swift` | Opt-in, isolated GitHub Releases update check |
+| `Sources/Strings.swift` | Single English string catalogue (`L10n`) for all user-facing copy |
 | `Sources/ContentView.swift` | Dashboard, trend card, fixes, activity, empty/error states |
 | `Sources/OnboardingView.swift` | First-run tour shown before the first scan |
 | `Sources/MenuBarView.swift` | Opt-in `MenuBarExtra` content and score label |
-| `Sources/SettingsView.swift` | Settings scene: schedule, exclusions, history, alerts, reset |
+| `Sources/SettingsView.swift` | Settings scene: schedule, exclusions, history, alerts, updates, reset |
 | `Sources/Shell.swift` | Timed process execution, C locale, admin via osascript |
 | `Sources/LaunchAgent.swift` | Writes/loads `com.macpulse.daily` plist |
+| `Casks/macpulse.rb` | Homebrew Cask formula definition |
 | `Tools/MakeIcon.swift` | Renders the 1024 px icon with AppKit at build time |
 | `build.sh` | Compile → bundle → icon → ad-hoc sign → optional install |
 | `test.sh` | Headless CLT-compatible test runner |
@@ -184,7 +198,8 @@ SystemCheck.collect()                   Sources/SystemCheck.swift
 - `~/Library/LaunchAgents/com.macpulse.daily.plist` — daily schedule
 - `UserDefaults` (`com.macpulse.app`) — `declinedFixIDs`, `excludedRuleIDs`,
   `hasCompletedOnboarding`, `menubarEnabled`, `scoreNotificationsEnabled`,
-  `scoreNotificationThreshold`, `scheduleHour`, `scheduleMinute`
+  `scoreNotificationThreshold`, `scheduleHour`, `scheduleMinute`,
+  `checkForUpdatesEnabled`, `lastUpdateCheckDate`
 - `~/Library/Preferences/company.thebrowser.dia.plist` — **never touched** (read-only
   diagnostics of other apps are out of scope)
 
@@ -248,6 +263,13 @@ Empty `command` with no native action means "advice only" — the UI shows only 
 | `brew-<service>` | Homebrew reports a started service | `brew services stop <name>` | no | Undo starts it again |
 | `helper-<label>` | vendor match or busy non-Apple agent; system daemons checked | `launchctl bootout` + `disable` | system domain only | Undo re-enables + bootstraps the plist |
 | `login-<name>` | AppleScript login items | delete via System Events | no | Not reversible; TCC sensitive |
+| `timemachine-none` | no Time Machine backup destination configured | none (advice) | no | Low severity; links to System Settings |
+| `timemachine-stale` | last backup finished ≥ 7 days ago | `tmutil startbackup` | no | Medium severity if ≥ 30 days; undo `tmutil stopbackup` |
+| `backup` | backupd > 25 % CPU | none (advice) | no | Explains active backup copying changes |
+| `spotlight` | mds / mdworker > 30 % CPU | none (advice) | no | Explains active indexing; pauses on user load |
+| `dns` | mDNSResponder > 20 % CPU | `dscacheutil -flushcache; killall -HUP mDNSResponder` | yes | Safe cache flush clears stuck lookups |
+| `smb` | smbd > 5 % CPU and SMB share mounted | none (advice) | no | Suggests disconnecting unneeded network mounts |
+| `mdm` | Mac is enrolled in MDM | none (advice) | no | Informational only; never disables profiles |
 
 **Protected labels:** `com.apple.*`, `com.macpulse.*`, `homebrew.*`, `com.openssh.*`,
 `org.openbsd.*`, running GUI applications (`application.*`, `uikitapplication.*`),
@@ -436,17 +458,17 @@ user's apps; all 144 unit tests pass.
 - [x] Push to <https://github.com/ShishirShekhar/macpulse> (public, MIT).
 - [x] Tag v1.0.0, publish zipped `.app` + checksums + release notes.
 
-### Phase 4 — Release hardening
+### Phase 4 — Release hardening (done)
 - [x] Signing-ready release workflow (Developer ID + notarization behind secrets;
       works unsigned today).
 - [x] Zipped `.app` + checksums + release notes on GitHub Releases.
-- [ ] Homebrew cask (optional, after first release).
+- [x] Homebrew cask (`Casks/macpulse.rb` for tap & one-line install).
 - [x] Gatekeeper instructions in README; support/security docs.
 
-### Phase 5 — After launch
-- [ ] More rules (Time Machine, backupd, Spotlight actual activity, DNS, SMB, MDM).
-- [ ] Localized UI; community rule contributions.
-- [ ] Optional opt-in update check for the direct build only.
+### Phase 5 — After launch (done)
+- [x] More rules (Time Machine, backupd, Spotlight actual activity, DNS, SMB, MDM).
+- [x] Localized UI; community rule contributions.
+- [x] Optional opt-in update check for the direct build only.
 
 ---
 
@@ -485,6 +507,10 @@ Developer ID rebrand), and do it before a tagged release if it ever changes.
 | 2026-11-17 | Menu bar extra and score alerts are opt-in | Keep the default app quiet and permission-free |
 | 2026-11-17 | History keeps 30 local scans | Enough for a trend without unbounded disk growth |
 | 2026-11-17 | One `L10n` catalogue, English first | Future translations add a dictionary, not view edits |
+| 2026-11-17 | Homebrew Cask formula in `Casks/macpulse.rb` | One-line install via standard brew tap |
+| 2026-11-17 | Time Machine, Spotlight, DNS, SMB, MDM rules | Deeper diagnostic coverage without destructive kills |
+| 2026-11-17 | Opt-in update check against GitHub API | Zero tracking, disabled by default, isolated in `Sources/UpdateCheck.swift` |
+| 2026-11-17 | Full dashboard UI localized via `L10n` | Central catalogue for clean translation and community contributions |
 
 ---
 

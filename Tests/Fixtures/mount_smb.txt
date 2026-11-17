@@ -1,0 +1,4 @@
+/dev/disk3s1s1 on / (apfs, sealed, local, read-only, journaled)
+devfs on /dev (devfs, local, nobrowse)
+map auto_home on /System/Volumes/Data/home (autofs, automounted, nobrowse)
+//shishir@nas.local/Media on /Volumes/Media (smbfs, nodev, nosuid, mounted by shishir)

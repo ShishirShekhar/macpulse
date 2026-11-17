@@ -21,6 +21,13 @@ time.
 
 ## Install
 
+### Homebrew Cask
+
+```bash
+brew tap ShishirShekhar/macpulse https://github.com/ShishirShekhar/macpulse
+brew install --cask macpulse
+```
+
 ### Download a release
 
 1. Download `MacPulse-vX.Y.Z.zip` from the
@@ -88,7 +95,10 @@ Each suggestion has **Approve** and **Decline**:
 Generic fix catalogue: battery service, low disk, inactive-memory purge,
 Notification Center reset, short sleep timer, thermal throttling, high
 WindowServer load, a busy GUI app, a running Homebrew service, a third-party
-background helper (VPN, VM, tablet, remote-access agent), and login items.
+background helper (VPN, VM, tablet, remote-access agent), login items,
+Time Machine backups (missing backup disk, stale backup, active backup),
+Spotlight indexing, DNS cache flushing, SMB share activity, and MDM
+enrollment notice.
 
 MacPulse never offers to disable Apple or system services.
 

@@ -22,13 +22,30 @@ truth for architecture, state, rules and roadmap.
 Before committing any change, verify that both the test suite and universal build succeed:
 
 ```bash
-./test.sh                 # runs all unit tests with fixtures (62 tests)
+./test.sh                 # runs all unit tests with fixtures (275 tests)
 ./build.sh                # build into build/, run a headless scan
 ./build.sh --install      # optional: install to /Applications and launch
 ```
 
 For UI changes, verify the window at 920×640 and a larger size, in light and dark
 mode, and check that status is never conveyed by colour alone.
+
+## Contributing health rules
+
+MacPulse evaluates system health using declarative rules in `Sources/Rules.swift`. Community contributions for new diagnostic rules are welcomed. When adding a rule:
+
+1. **Safety & privacy**:
+   - Zero telemetry, zero external network calls.
+   - User approval is mandatory: never run silent fixes or force-kill applications.
+   - Never offer to disable system processes (`kernel_task`, `launchd`, Apple daemons).
+   - Only request admin privileges when strictly necessary, and always provide an `undoCommand` if reversible.
+2. **Implementation steps**:
+   - **Probe**: If the rule requires new telemetry, add or extend a probe in `Sources/Probes/`. Telemetry extraction must use safe timeouts, `LC_ALL=C`, and typed sample values.
+   - **Parser**: Write pure parsing logic in `Sources/Probes/ProbeParsers.swift`.
+   - **Rule definition**: Append the rule logic in `Sources/Rules.swift`. Construct a `FixSuggestion` with stable ID, severity (`.high`, `.medium`, `.low`), and localized strings.
+   - **Localization**: Add English strings to `Sources/Strings.swift` under `rule.<id>.title`, `rule.<id>.detail`, and `rule.<id>.value`.
+   - **Settings**: Register the rule in `Sources/SettingsView.swift` under `availableExcludableRules` so users can toggle it.
+   - **Tests & fixtures**: Add sample CLI outputs in `Tests/Fixtures/` and unit tests in `Tests/RunTests.swift`. Ensure `test.sh` and `build.sh` both pass.
 
 ## Commit message standards
 
