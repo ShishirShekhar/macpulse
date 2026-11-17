@@ -4,6 +4,22 @@ All notable changes to MacPulse are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-11-17
+
+### Added
+
+- **Multi-language translation catalogues**:
+  - Full translations for German (`de`), French (`fr`), Spanish (`es`), and Japanese (`ja`).
+  - Automatic language resolution matching system preferences (`Locale.preferredLanguages`) with safe English fallback.
+  - Modular dictionary architecture in `Sources/Translations/`.
+
+### Fixed
+
+- **Spotlight active indexing probe (Known Bug #1)**:
+  - Replaced misleading `mdutil -s /` configuration check with live CPU monitoring of `mds` and `mdworker` processes.
+  - Eliminates unnecessary shell invocation, improving scan speed and accuracy.
+- Test suite expanded to **1,399 tests** validating translations and format specifiers across all supported languages.
+
 ## [1.4.0] - 2026-11-17
 
 ### Added
