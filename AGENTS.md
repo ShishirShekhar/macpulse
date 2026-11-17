@@ -118,8 +118,9 @@ or anything that silently changes system settings.
 
 ### Known bugs / incomplete
 
-1. **Spotlight field is semantically wrong.** `mdutil -s /` reports whether indexing
-   is *enabled*, not whether it is *active*; hidden in the UI but still in the model.
+1. [Resolved in v1.5.0] **Spotlight active indexing**: `isSpotlightIndexing` now detects
+   whether indexing processes (`mds`, `mds_stores`, `mdworker`) are actively consuming CPU
+   (≥ 10%), replacing the misleading `mdutil -s` configuration check and removing an unneeded shell call.
 2. **`windowServerCPU` is not scored in headless scans** because nothing is
    compositing. Interactive scans still score it above 45 %.
 3. **Localization is scaffolded, not translated.** All new Phase 2 copy lives in

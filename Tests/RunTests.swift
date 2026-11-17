@@ -233,6 +233,11 @@ struct RunTests {
             "Missing process contributes no CPU"
         )
 
+        // Spotlight active indexing
+        assertTrue(ProbeParsers.isSpotlightIndexing(cpu: 15.0), "15% CPU means Spotlight is actively indexing")
+        assertFalse(ProbeParsers.isSpotlightIndexing(cpu: 2.0), "2% CPU does not flag active indexing")
+        assertFalse(ProbeParsers.isSpotlightIndexing(cpu: 0), "0% CPU means idle")
+
         // Power and sleep assertions
         let assertionsSample = ProbeParsers.sleepAssertions(readFixture("pmset_assertions.txt"))
         assertTrue(assertionsSample.preventSystemSleep, "System sleep prevention parsed from pmset")
