@@ -6,8 +6,47 @@ All notable changes to MacPulse are documented here. The format follows
 
 ## [Unreleased]
 
-Planned for future releases: scan history with a score trend (last 30 scans),
-first-run onboarding with permission explanation, menu bar extra, and localization.
+Nothing yet.
+
+## [1.2.0] - 2026-11-17
+
+Phase 2 product polish: onboarding, history, opt-in menu bar and alerts, string
+catalogue, and empty/error states.
+
+### Added
+
+- First-run onboarding that explains what MacPulse reads, the local-only privacy
+  promise, the Automation and administrator prompts, and the daily schedule. The
+  first scan now waits for the tour, so macOS never prompts while the dashboard
+  is loading.
+- Scan history of the last 30 checks in `history.json`, shown as a score sparkline
+  with a "since yesterday" (or "since the last check") summary of score changes
+  and new or cleared recommendations.
+- Opt-in menu bar extra showing the latest score with Check Now, Open MacPulse
+  and Quit actions. It is off by default and can be removed from Settings.
+- Opt-in local notification when the score crosses a configurable threshold
+  (default 70). Alerts use `UNUserNotificationCenter` only; nothing is uploaded.
+- Localization scaffolding in `Sources/Strings.swift`: one English catalogue,
+  `L10n.t(key, arguments)` templates, and a visible key fallback for missing text.
+- Empty and error states for a missing cached scan or a partial set of readings,
+  with a direct retry action.
+- Settings sections for scan history, the menu bar extra, score alerts and a
+  "show the welcome tour again" action.
+- 82 new unit tests (144 total) covering history pruning and comparison, threshold
+  alert policy, and the string catalogue.
+
+### Changed
+
+- `build.sh` links `UserNotifications` and reports version 1.2.0 (build 4).
+- The headless `--check` path now appends to history and can post a local alert.
+- `AGENTS.md` records Phase 2 as complete, the new files and the data written.
+
+### Fixed
+
+- Removed the startup race where the Automation prompt could appear over an
+  unfinished dashboard; onboarding now gates the first scan.
+- Guarded the `MenuBarExtra` insertion binding against no-op updates, which could
+  re-enter the scene body and crash SwiftUI when the extra was already enabled.
 
 ## [1.1.1] - 2026-11-16
 
