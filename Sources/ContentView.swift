@@ -1111,7 +1111,7 @@ struct Footer: View {
             .buttonStyle(.link)
             .font(.system(size: 11))
 
-            Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.6.0")")
+            Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.7.0")")
                 .font(.system(size: 10))
                 .foregroundStyle(.tertiary)
         }

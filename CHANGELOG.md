@@ -4,6 +4,22 @@ All notable changes to MacPulse are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-11-17
+
+### Added
+
+- **100% End-to-End Localization**:
+  - Full localization of all dashboard metrics, labels, cards, activity badges, and action buttons.
+  - Complete translation of all 18 excludable diagnostic rule titles and descriptions in Settings across English, German, French, Spanish, and Japanese.
+  - Total dictionary entries expanded to 242 keys per language.
+- **Modular Rule Architecture (`DiagnosticRule`)**:
+  - Decoupled `Rules.build` into composable `DiagnosticRule` implementations (`BatteryHealthRule`, `DiskSpaceRule`, `MemoryPurgeRule`, `TimeMachineRule`, `SleepAssertionsRule`, etc.).
+  - Individual rule evaluation isolation and direct testing.
+- **Privacy-Preserving Diagnostic Report**:
+  - Dedicated "Copy Diagnostic Report" capability in Settings and Dashboard footer.
+  - Produces formatted Markdown diagnostics covering system hardware, primary metrics, active recommendations, and top processes while strictly omitting personal identifiers, usernames, and file paths.
+- Unit test suite expanded to **2,388 passing tests**.
+
 ## [1.6.0] - 2026-11-17
 
 ### Added

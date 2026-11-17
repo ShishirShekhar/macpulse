@@ -238,7 +238,7 @@ final class AppModel: ObservableObject {
         if manual {
             updateStatus = L10n.t("updates.checking")
         }
-        let currentVer = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.6.0"
+        let currentVer = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.7.0"
         UpdateCheck.check(currentVersion: currentVer) { [weak self] result in
             DispatchQueue.main.async {
                 guard let self = self else { return }
