@@ -52,7 +52,7 @@ enum UpdateCheck {
     /// Performs an asynchronous update check if invoked. Callers MUST ensure
     /// that user consent (opt-in) is respected.
     static func check(
-        currentVersion: String = "1.2.0",
+        currentVersion: String = "1.3.0",
         session: URLSession = .shared,
         completion: @escaping (Result<ReleaseInfo?, Error>) -> Void
     ) {

@@ -6,7 +6,7 @@
 > are redirects — they must never duplicate content. If you learn something new,
 > update **this file only**.
 
-Last updated: 2026-11-17 · App version: 1.2.0 · Status: **Phase 1 through Phase 5 complete; v1.2.0 published** (<https://github.com/ShishirShekhar/macpulse/releases/tag/v1.2.0>).
+Last updated: 2026-11-17 · App version: 1.3.0 · Status: **Phase 1 through Phase 5 complete; v1.3.0 cutting release** (<https://github.com/ShishirShekhar/macpulse/releases/tag/v1.3.0>).
 
 ---
 
@@ -373,6 +373,9 @@ The engine is now device-generic; the remaining work is polish and test coverage
 - **v1.2.0** published 2026-11-17 (`MacPulse-v1.2.0.zip` + `checksums.txt`, curated
   notes). Downloaded artifact verified: checksum OK, universal `x86_64 arm64`,
   ad-hoc signature intact, `CFBundleShortVersionString` 1.2.0 (build 4).
+- **v1.3.0** published 2026-11-17: Phase 4 & Phase 5 release with Homebrew Cask,
+  Time Machine, Spotlight, DNS, SMB, MDM rules, opt-in software updates,
+  and expanded localization (build 5).
 
 **Signing reality:** there is no Apple Developer Program membership and no signing
 identity on the dev machine, so releases are **ad-hoc signed, not notarized**. Users
