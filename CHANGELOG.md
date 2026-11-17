@@ -4,6 +4,19 @@ All notable changes to MacPulse are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-11-17
+
+### Added
+
+- **Phase 6 power & sleep intelligence**:
+  - Sleep assertions inspector (`SleepProbe`): queries `pmset -g assertions` to identify processes holding wake-locks that prevent idle display or system sleep.
+  - Actionable `caffeinate` termination fix (`sleep-caffeinate-<pid>`): terminates rogue background keep-awake processes via standard SIGTERM without admin rights.
+  - Peripheral battery monitoring (`PeripheralProbe`): samples connected Bluetooth and Apple HID accessories (Magic Mouse, Magic Keyboard, Magic Trackpads, wireless headsets) via `ioreg -r -l -k BatteryPercent`.
+  - Accessory battery warnings (`peripheral-battery-<slug>`): warns when connected accessory charge drops to ≤ 20% (medium severity) or ≤ 10% (high severity).
+  - Desktop battery card enhancement: dynamically displays connected accessory battery levels on Macs without internal batteries (Mac mini, Mac Studio, iMac, Mac Pro).
+  - Rule exclusions: added `sleep-caffeinate` and `peripheral-battery` to configurable rule toggles in Settings.
+- Expanded unit test suite from 275 to **312 unit tests** with new fixtures and test coverage.
+
 ## [1.3.0] - 2026-11-17
 
 ### Added

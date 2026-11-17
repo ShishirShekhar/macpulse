@@ -1102,7 +1102,7 @@ struct Footer: View {
             .buttonStyle(.link)
             .font(.system(size: 11))
 
-            Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.3.0")")
+            Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.4.0")")
                 .font(.system(size: 10))
                 .foregroundStyle(.tertiary)
         }
