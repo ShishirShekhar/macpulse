@@ -276,7 +276,44 @@ struct SettingsView: View {
                 }
                 .card()
 
-                // Section 6: Software Updates (Opt-in)
+                // Section 6: Language
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Label(L10n.t("settings.language.title"), systemImage: "globe")
+                            .font(.system(size: 14, weight: .semibold))
+                        Spacer()
+                    }
+
+                    Text(L10n.t("settings.language.detail"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Divider()
+
+                    HStack(spacing: 12) {
+                        Text(L10n.t("settings.language.label"))
+                            .font(.system(size: 13, weight: .medium))
+
+                        Picker("", selection: Binding(
+                            get: { model.selectedLanguage },
+                            set: { model.selectedLanguage = $0 }
+                        )) {
+                            Text(L10n.t("settings.language.system")).tag("system")
+                            Text("English").tag("en")
+                            Text("Deutsch").tag("de")
+                            Text("Français").tag("fr")
+                            Text("Español").tag("es")
+                            Text("日本語").tag("ja")
+                        }
+                        .labelsHidden()
+                        .frame(width: 170)
+
+                        Spacer()
+                    }
+                }
+                .card()
+
+                // Section 7: Software Updates (Opt-in)
                 VStack(alignment: .leading, spacing: 12) {
                     Label(L10n.t("updates.title"), systemImage: "arrow.triangle.2.circlepath")
                         .font(.system(size: 14, weight: .semibold))
@@ -331,7 +368,7 @@ struct SettingsView: View {
                 }
                 .card()
 
-                // Section 7: Advanced & Reset
+                // Section 8: Advanced & Reset
                 VStack(alignment: .leading, spacing: 12) {
                     Label("Advanced & Privacy", systemImage: "lock.shield")
                         .font(.system(size: 14, weight: .semibold))
