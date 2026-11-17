@@ -131,7 +131,7 @@ struct ContentView: View {
             VStack(alignment: .trailing, spacing: 0) {
                 HStack {
                     Spacer()
-                    Button("Done") {
+                    Button(L10n.t("common.done")) {
                         model.showSettings = false
                     }
                     .buttonStyle(.borderedProminent)
@@ -280,7 +280,7 @@ struct ScoreRing: View {
                 Text("\(score)")
                     .font(.system(size: 23, weight: .bold, design: .rounded))
                     .monospacedDigit()
-                Text("score")
+                Text(L10n.t("dashboard.scoreLabel"))
                     .font(.system(size: 8, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
@@ -305,7 +305,7 @@ struct ScoreBreakdownView: View {
                 Label(L10n.t("dashboard.scoreBreakdown.title"), systemImage: "chart.bar.xaxis")
                     .font(.system(size: 13, weight: .semibold))
                 Spacer()
-                Button("Done") {
+                Button(L10n.t("common.done")) {
                     model.showScoreBreakdown = false
                 }
                 .buttonStyle(.borderless)
@@ -427,7 +427,7 @@ struct HistorySection: View {
                         .font(.system(size: 26, weight: .bold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(deltaColor)
-                    Text("pts")
+                    Text(L10n.t("dashboard.pts"))
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(.secondary)
                 }
@@ -523,57 +523,57 @@ struct MetricGrid: View {
         LazyVGrid(columns: columns, spacing: 12) {
             MetricCard(
                 icon: "cpu",
-                title: "CPU Load",
+                title: L10n.t("metric.cpu.title"),
                 value: String(format: "%.2f", result.load1),
                 caption: "5m \(String(format: "%.2f", result.load5)) · 15m \(String(format: "%.2f", result.load15)) · \(result.cpuCores) cores",
                 status: result.cpuStatus
             )
             MetricCard(
                 icon: "memorychip",
-                title: "Memory",
-                value: "\(Int(result.memFreePct))% free",
-                caption: String(format: "%.0f GB total · %.1f GB compressed · %.0f MB swap", result.memTotalGB, result.memCompressedGB, result.swapUsedMB),
+                title: L10n.t("metric.memory.title"),
+                value: L10n.t("metric.memory.value", Int(result.memFreePct)),
+                caption: L10n.t("metric.memory.caption", result.memTotalGB, result.memCompressedGB, result.swapUsedMB),
                 status: result.memoryStatus
             )
             MetricCard(
                 icon: "internaldrive",
-                title: "Storage",
-                value: "\(Int(result.diskFreeGB)) GB free",
-                caption: "\(Int(result.diskFreePct))% of \(Int(result.diskTotalGB)) GB available",
+                title: L10n.t("metric.storage.title"),
+                value: L10n.t("metric.storage.value", Int(result.diskFreeGB)),
+                caption: L10n.t("metric.storage.caption", Int(result.diskFreePct), Int(result.diskTotalGB)),
                 status: result.diskStatus
             )
             MetricCard(
                 icon: batterySymbol,
-                title: "Battery",
+                title: L10n.t("metric.battery.title"),
                 value: batteryValue,
                 caption: batteryCaption,
                 status: result.batteryStatus
             )
             MetricCard(
                 icon: "thermometer.medium",
-                title: "Thermals",
+                title: L10n.t("metric.thermals.title"),
                 value: "\(Int(result.kernelTaskCPU))%",
-                caption: "kernel_task — CPU throttling indicator",
+                caption: L10n.t("metric.thermals.caption"),
                 status: result.thermalStatus
             )
             MetricCard(
                 icon: "power",
-                title: "Startup",
-                value: "\(result.loginItems.count) login item\(result.loginItems.count == 1 ? "" : "s")",
-                caption: "\(result.launchAgentCount) launch agents installed",
+                title: L10n.t("metric.startup.title"),
+                value: L10n.t("metric.startup.value", result.loginItems.count),
+                caption: L10n.t("metric.startup.caption", result.launchAgentCount),
                 status: result.startupStatus
             )
             MetricCard(
                 icon: "display",
-                title: "WindowServer",
+                title: L10n.t("metric.windowserver.title"),
                 value: "\(Int(result.windowServerCPU))%",
-                caption: "Compositing / display overhead",
+                caption: L10n.t("metric.windowserver.caption"),
                 status: result.windowServerStatus
             )
             MetricCard(
                 icon: "moon.zzz.fill",
-                title: "Auto-sleep (AC)",
-                value: result.acSleepMinutes <= 0 ? "Never" : "\(result.acSleepMinutes) min",
+                title: L10n.t("metric.sleep.title"),
+                value: result.acSleepMinutes <= 0 ? L10n.t("metric.sleep.never") : "\(result.acSleepMinutes) min",
                 caption: sleepCaption,
                 status: result.sleepStatus
             )
@@ -583,11 +583,11 @@ struct MetricGrid: View {
     private var batteryValue: String {
         if result.batteryCondition == "No battery" {
             if let peripherals = result.peripherals, !peripherals.isEmpty {
-                return "\(peripherals.count) accessory\(peripherals.count == 1 ? "" : "ies")"
+                return L10n.t("metric.battery.accessories", peripherals.count)
             }
-            return "No battery"
+            return L10n.t("metric.battery.noBattery")
         }
-        return "\(Int(result.batteryHealthPct))% health"
+        return L10n.t("metric.battery.health", Int(result.batteryHealthPct))
     }
 
     private var batteryCaption: String {
@@ -596,22 +596,22 @@ struct MetricGrid: View {
             if !periphStr.isEmpty {
                 return periphStr
             }
-            return "Desktop Mac — running on power"
+            return L10n.t("metric.battery.desktopPower")
         }
         if !periphStr.isEmpty {
-            return "\(result.batteryCycles) cycles · \(periphStr)"
+            return L10n.t("metric.battery.cyclesWithPeriph", result.batteryCycles, periphStr)
         }
-        return "\(result.batteryCycles) cycles · \(result.batteryCondition) · \(result.batteryCharge)%"
+        return L10n.t("metric.battery.cycles", result.batteryCycles, result.batteryCondition, result.batteryCharge)
     }
 
     private var sleepCaption: String {
         if let assertions = result.sleepAssertions, assertions.contains(where: { $0.process == "caffeinate" }) {
-            return "Sleep blocked by caffeinate"
+            return L10n.t("metric.sleep.caffeinateBlocked")
         }
         if let assertions = result.sleepAssertions, !assertions.isEmpty {
-            return "\(assertions.count) sleep assertion\(assertions.count == 1 ? "" : "s") active"
+            return L10n.t("metric.sleep.assertionsActive", assertions.count)
         }
-        return "Applies while on the power adapter"
+        return L10n.t("metric.sleep.acCaption")
     }
 
     private var batterySymbol: String {
@@ -696,9 +696,9 @@ struct FixesView: View {
                         .font(.system(size: 17))
                         .foregroundStyle(Theme.good)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Nothing to fix")
+                        Text(L10n.t("dashboard.nothingToFix"))
                             .font(.system(size: 13, weight: .semibold))
-                        Text("Every automated check passed on this run.")
+                        Text(L10n.t("dashboard.nothingToFix.detail"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -787,7 +787,7 @@ struct FixRow: View {
                                     in: RoundedRectangle(cornerRadius: 7, style: .continuous)
                                 )
                         } label: {
-                            Text("Show command")
+                            Text(L10n.t("dashboard.showCommand"))
                                 .font(.system(size: 10))
                                 .foregroundStyle(.secondary)
                         }
@@ -807,8 +807,8 @@ struct FixRow: View {
                                     Image(systemName: fix.nativeAction == "quit" ? "xmark.circle" : "checkmark")
                                 }
                                 Text(model.runningFixID == fix.id
-                                     ? "Running…"
-                                     : (fix.nativeAction == "quit" ? "Quit App" : "Approve"))
+                                     ? L10n.t("fix.running")
+                                     : (fix.nativeAction == "quit" ? L10n.t("fix.quitApp") : L10n.t("fix.approve")))
                             }
                             .frame(minWidth: 74)
                         }
@@ -819,7 +819,7 @@ struct FixRow: View {
                         .accessibilityLabel("Approve fix: \(fix.title)")
                     }
 
-                    Button(isActionable ? "Decline" : "Dismiss") {
+                    Button(isActionable ? L10n.t("fix.decline") : L10n.t("fix.dismiss")) {
                         model.decline(fix)
                     }
                     .buttonStyle(.bordered)
@@ -828,15 +828,15 @@ struct FixRow: View {
                     .accessibilityLabel("\(isActionable ? "Decline" : "Dismiss") fix: \(fix.title)")
 
                     if fix.admin {
-                        Label("Asks for admin password", systemImage: "lock.fill")
+                        Label(L10n.t("fix.adminBadge"), systemImage: "lock.fill")
                             .font(.system(size: 10))
                             .foregroundStyle(.tertiary)
                     } else if fix.nativeAction == "quit" {
-                        Label("Sends a normal Quit request", systemImage: "hand.raised.fill")
+                        Label(L10n.t("fix.quitBadge"), systemImage: "hand.raised.fill")
                             .font(.system(size: 10))
                             .foregroundStyle(.tertiary)
                     } else if fix.undoCommand != nil {
-                        Label("Can be undone", systemImage: "arrow.uturn.backward")
+                        Label(L10n.t("fix.undoBadge"), systemImage: "arrow.uturn.backward")
                             .font(.system(size: 10))
                             .foregroundStyle(.tertiary)
                     }
@@ -881,7 +881,7 @@ struct DeclinedSection: View {
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                         Spacer()
-                        Button("Restore") { model.restore(fix) }
+                        Button(L10n.t("common.restore")) { model.restore(fix) }
                             .buttonStyle(.link)
                             .font(.caption)
                     }
@@ -890,7 +890,7 @@ struct DeclinedSection: View {
 
                 HStack {
                     Spacer()
-                    Button("Restore all") { model.restoreAll() }
+                    Button(L10n.t("common.restoreAll")) { model.restoreAll() }
                         .buttonStyle(.link)
                         .font(.caption)
                 }
@@ -902,7 +902,7 @@ struct DeclinedSection: View {
             HStack(spacing: 7) {
                 Image(systemName: "eye.slash")
                     .font(.system(size: 11))
-                Text("\(model.declinedFixes.count) declined")
+                Text(L10n.t("dashboard.declinedCount", model.declinedFixes.count))
                     .font(.system(size: 12, weight: .medium))
                 Spacer()
             }
@@ -932,13 +932,13 @@ struct ActivitySection: View {
             HStack(spacing: 7) {
                 Image(systemName: "clock.arrow.circlepath")
                     .font(.system(size: 12))
-                Text("Recent activity")
+                Text(L10n.t("dashboard.recentActivity"))
                     .font(.system(size: 12, weight: .semibold))
                 Text("\(model.activity.count)")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.secondary)
                 Spacer()
-                Button("Clear") { model.clearActivity() }
+                Button(L10n.t("common.clear")) { model.clearActivity() }
                     .buttonStyle(.link)
                     .font(.caption)
             }
@@ -984,7 +984,7 @@ struct ActivityRow: View {
                         .font(.system(size: 12, weight: .semibold))
                         .lineLimit(1)
                     if item.state == .undone {
-                        Text("UNDONE")
+                        Text(L10n.t("dashboard.activity.undone"))
                             .font(.system(size: 8, weight: .bold))
                             .foregroundStyle(Theme.accentAlt)
                             .padding(.horizontal, 5)
@@ -1003,7 +1003,7 @@ struct ActivityRow: View {
             }
 
             if item.state == .success, item.undoCommand != nil {
-                Button("Undo") { model.undo(item) }
+                Button(L10n.t("common.undo")) { model.undo(item) }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(model.runningFixID != nil)
@@ -1022,7 +1022,7 @@ struct ProcessSection: View {
     var body: some View {
         VStack(spacing: 8) {
             if processes.isEmpty {
-                Text("No process data available")
+                Text(L10n.t("dashboard.noProcessData"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
