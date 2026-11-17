@@ -6,7 +6,19 @@ All notable changes to MacPulse are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- **Phase 4 hardening**: Homebrew Cask definition in `Casks/macpulse.rb` for one-line installation (`brew tap ShishirShekhar/macpulse && brew install --cask macpulse`).
+- **Phase 5 diagnostic rules**:
+  - Time Machine backup monitoring: detect missing backup disk (`timemachine-none`), flag backups older than 7 days with a reversible `tmutil startbackup` fix (`timemachine-stale`), and explain active `backupd` resource usage (`backup`).
+  - Spotlight indexing activity: explains high CPU during initial indexing or updates without offering destructive kills (`spotlight`).
+  - DNS responder fix: detects busy `mDNSResponder` and suggests an admin-gated DNS cache flush (`dns`).
+  - Network shares: detects busy mounted SMB shares consuming `smbd` CPU (`smb`).
+  - MDM enrollment notice: informs when a Mac is managed via Mobile Device Management, never touching profiles or configuration (`mdm`).
+- **UI localization expansion**: all dashboard section headers, buttons, and status labels now use the central `L10n` catalogue.
+- **Opt-in software updates**: isolated update check in `Settings → Software Updates` querying public GitHub Releases. Off by default with zero analytics or tracking.
+- **Community rule guidelines**: added step-by-step documentation for adding new rules in `CONTRIBUTING.md`.
+- Expanded unit test suite to 275 tests covering new rules, parsers, CLI fixtures, and version comparison logic.
 
 ## [1.2.0] - 2026-11-17
 
