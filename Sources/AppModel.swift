@@ -89,35 +89,85 @@ final class AppModel: ObservableObject {
     @Published var scheduleMinute: Int = 0
     @Published var showScoreBreakdown = false
     @Published var showSettings = false
+    @Published var history: [HistoryEntry] = []
+    @Published var showOnboarding = false
+    @Published var onboardingScheduleDaily = true
+    @Published var menuBarEnabled = false {
+        didSet { UserDefaults.standard.set(menuBarEnabled, forKey: menuBarKey) }
+    }
+    @Published var scoreNotificationsEnabled = false {
+        didSet { UserDefaults.standard.set(scoreNotificationsEnabled, forKey: Notifications.enabledKey) }
+    }
+    @Published var scoreNotificationThreshold = Notifications.defaultThreshold {
+        didSet { UserDefaults.standard.set(scoreNotificationThreshold, forKey: Notifications.thresholdKey) }
+    }
 
     private let declinedKey = "declinedFixIDs"
     private let excludedRulesKey = "excludedRuleIDs"
     private let advancedCommandsKey = "showAdvancedCommands"
     private let scheduleHourKey = "scheduleHour"
     private let scheduleMinuteKey = "scheduleMinute"
+    private let onboardingKey = "hasCompletedOnboarding"
+    private let menuBarKey = "menuBarEnabled"
+    private var hasCompletedOnboarding = false
     private var bannerToken = UUID()
 
     init() {
-        declined = Set(UserDefaults.standard.stringArray(forKey: declinedKey) ?? [])
-        excludedRules = Set(UserDefaults.standard.stringArray(forKey: excludedRulesKey) ?? [])
-        showAdvancedCommands = UserDefaults.standard.bool(forKey: advancedCommandsKey)
+        let defaults = UserDefaults.standard
+        declined = Set(defaults.stringArray(forKey: declinedKey) ?? [])
+        excludedRules = Set(defaults.stringArray(forKey: excludedRulesKey) ?? [])
+        showAdvancedCommands = defaults.bool(forKey: advancedCommandsKey)
+        menuBarEnabled = defaults.bool(forKey: menuBarKey)
+        scoreNotificationsEnabled = defaults.bool(forKey: Notifications.enabledKey)
+        scoreNotificationThreshold = defaults.object(forKey: Notifications.thresholdKey) as? Int
+            ?? Notifications.defaultThreshold
+        history = HistoryStore.load()
 
         if let savedSchedule = LaunchAgent.installedSchedule {
             scheduleHour = savedSchedule.hour
             scheduleMinute = savedSchedule.minute
         } else {
-            let savedH = UserDefaults.standard.integer(forKey: scheduleHourKey)
+            let savedH = defaults.integer(forKey: scheduleHourKey)
             scheduleHour = savedH > 0 ? savedH : 9
-            scheduleMinute = UserDefaults.standard.integer(forKey: scheduleMinuteKey)
+            scheduleMinute = defaults.integer(forKey: scheduleMinuteKey)
         }
 
         result = SystemCheck.load()
 
-        // First launch: schedule the daily background check automatically.
-        if !LaunchAgent.isInstalled {
+        // The first scan waits for onboarding, so macOS never asks for Automation
+        // access while the dashboard is still loading.
+        hasCompletedOnboarding = defaults.bool(forKey: onboardingKey)
+        showOnboarding = !hasCompletedOnboarding
+
+        // A returning user keeps the previous behaviour: repair a missing agent.
+        if hasCompletedOnboarding && !LaunchAgent.isInstalled {
             _ = LaunchAgent.install(hour: scheduleHour, minute: scheduleMinute)
         }
         dailyCheck = LaunchAgent.isInstalled
+    }
+
+    // MARK: History
+
+    /// The latest scan compared with the most recent earlier day, falling back to
+    /// the previous scan when the app has only been used today.
+    var changeSinceYesterday: HistoryChange? {
+        guard let latest = history.first else { return nil }
+        let older = Array(history.dropFirst())
+        let previous = ScanHistory.previousDailyEntry(before: latest.date, in: older)
+            ?? ScanHistory.previousEntry(before: latest.date, in: older)
+        return previous.map { ScanHistory.change(from: $0, to: latest) }
+    }
+
+    var comparisonIsFromEarlierDay: Bool {
+        guard let latest = history.first else { return false }
+        return ScanHistory.previousDailyEntry(before: latest.date, in: Array(history.dropFirst())) != nil
+    }
+
+    func clearHistory() {
+        HistoryStore.clear()
+        history = []
+        banner = Banner(text: "Scan history cleared", kind: .info)
+        scheduleBannerClear()
     }
 
     // MARK: Derived state
@@ -144,6 +194,10 @@ final class AppModel: ObservableObject {
 
     func startIfNeeded() {
         guard !isChecking else { return }
+        guard hasCompletedOnboarding else {
+            showOnboarding = true
+            return
+        }
         if let cached = result {
             if Date().timeIntervalSince(cached.date) > 6 * 3600 {
                 runCheck()
@@ -155,14 +209,26 @@ final class AppModel: ObservableObject {
 
     func runCheck() {
         guard !isChecking else { return }
+        guard hasCompletedOnboarding else {
+            showOnboarding = true
+            return
+        }
         isChecking = true
+        lastError = nil
+        let previous = result
 
         DispatchQueue.global(qos: .userInitiated).async {
             let fresh = SystemCheck.collect(interactive: true)
             SystemCheck.save(fresh)
+            let updatedHistory = HistoryStore.record(fresh)
+            Notifications.postIfNeeded(previous: previous, current: fresh)
 
             DispatchQueue.main.async {
                 self.result = fresh
+                self.history = updatedHistory
+                self.lastError = (fresh.cpuCores > 0 && fresh.diskTotalGB > 0)
+                    ? nil
+                    : L10n.t("empty.errorBody")
                 self.isChecking = false
                 self.banner = Banner(
                     text: "Checked — score \(fresh.score), \(fresh.fixes.count) suggestion\(fresh.fixes.count == 1 ? "" : "s")",
@@ -334,6 +400,76 @@ final class AppModel: ObservableObject {
         declined.removeAll()
     }
 
+    // MARK: Onboarding
+
+    /// Finishes the welcome tour and starts the first scan. Running this only
+    /// after the user has read the permission copy keeps the Automation prompt
+    /// from appearing over an unfinished dashboard.
+    func completeOnboarding(scheduleDaily: Bool) {
+        hasCompletedOnboarding = true
+        UserDefaults.standard.set(true, forKey: onboardingKey)
+        showOnboarding = false
+
+        if scheduleDaily {
+            if let error = LaunchAgent.install(hour: scheduleHour, minute: scheduleMinute) {
+                banner = Banner(text: error, kind: .failure)
+                dailyCheck = false
+            } else {
+                dailyCheck = true
+            }
+            scheduleBannerClear()
+        } else {
+            LaunchAgent.uninstall()
+            dailyCheck = false
+        }
+
+        runCheck()
+    }
+
+    func showOnboardingAgain() {
+        hasCompletedOnboarding = false
+        UserDefaults.standard.set(false, forKey: onboardingKey)
+        showOnboarding = true
+    }
+
+    // MARK: Menu bar and notifications
+
+    func setMenuBarEnabled(_ enabled: Bool) {
+        // SwiftUI evaluates the MenuBarExtra binding while building the scene;
+        // ignoring a no-op change avoids re-entering the body forever.
+        guard menuBarEnabled != enabled else { return }
+        menuBarEnabled = enabled
+    }
+
+    /// Asks for notification permission only when the user turns alerts on, then
+    /// remembers the answer so a denial cannot loop the prompt.
+    func setScoreNotifications(_ enabled: Bool) {
+        guard enabled else {
+            scoreNotificationsEnabled = false
+            Notifications.clearDelivered()
+            return
+        }
+
+        Notifications.requestAuthorization { [weak self] granted in
+            guard let self else { return }
+            if granted {
+                self.scoreNotificationsEnabled = true
+                self.banner = Banner(
+                    text: "Score alerts on below \(self.scoreNotificationThreshold)",
+                    kind: .success
+                )
+            } else {
+                self.scoreNotificationsEnabled = false
+                self.banner = Banner(text: L10n.t("notifications.permissionDenied"), kind: .failure)
+            }
+            self.scheduleBannerClear()
+        }
+    }
+
+    func setNotificationThreshold(_ value: Int) {
+        scoreNotificationThreshold = min(95, max(10, value))
+    }
+
     // MARK: Daily schedule
 
     var formattedScheduleTime: String {
@@ -384,14 +520,25 @@ final class AppModel: ObservableObject {
 
     func resetAllData() {
         SystemCheck.clearCache()
+        HistoryStore.clear()
         result = nil
+        history = []
         activity.removeAll()
         declined.removeAll()
         excludedRules.removeAll()
         showAdvancedCommands = false
+        menuBarEnabled = false
+        scoreNotificationsEnabled = false
+        scoreNotificationThreshold = Notifications.defaultThreshold
+        hasCompletedOnboarding = false
+        showOnboarding = false
         UserDefaults.standard.removeObject(forKey: declinedKey)
         UserDefaults.standard.removeObject(forKey: excludedRulesKey)
         UserDefaults.standard.removeObject(forKey: advancedCommandsKey)
+        UserDefaults.standard.removeObject(forKey: onboardingKey)
+        UserDefaults.standard.removeObject(forKey: menuBarKey)
+        UserDefaults.standard.removeObject(forKey: Notifications.enabledKey)
+        UserDefaults.standard.removeObject(forKey: Notifications.thresholdKey)
         banner = Banner(text: "All MacPulse data and preferences reset", kind: .info)
         scheduleBannerClear()
     }

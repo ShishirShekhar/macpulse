@@ -5,7 +5,7 @@ struct MacPulseUI: App {
     @StateObject private var model = AppModel()
 
     var body: some Scene {
-        WindowGroup("MacPulse") {
+        WindowGroup("MacPulse", id: "main") {
             ContentView()
                 .environmentObject(model)
                 .frame(minWidth: 920, minHeight: 640)
@@ -21,6 +21,21 @@ struct MacPulseUI: App {
             }
         }
 
+        MenuBarExtra(isInserted: Binding(
+            get: { model.menuBarEnabled },
+            set: { newValue in
+                if model.menuBarEnabled != newValue {
+                    model.setMenuBarEnabled(newValue)
+                }
+            }
+        )) {
+            MenuBarContent()
+                .environmentObject(model)
+        } label: {
+            MenuBarLabel(score: model.result?.score)
+        }
+        .menuBarExtraStyle(.menu)
+
         Settings {
             SettingsView()
                 .environmentObject(model)
@@ -32,8 +47,11 @@ struct MacPulseUI: App {
 struct Launcher {
     static func main() {
         if CommandLine.arguments.contains("--check") {
+            let previous = SystemCheck.load()
             let result = SystemCheck.collect(interactive: false)
             SystemCheck.save(result)
+            _ = HistoryStore.record(result)
+            Notifications.postIfNeeded(previous: previous, current: result)
             let line = "MacPulse daily check — score \(result.score), \(result.fixes.count) suggestions\n"
             FileHandle.standardOutput.write(Data(line.utf8))
             exit(0)

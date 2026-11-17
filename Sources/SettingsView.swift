@@ -178,7 +178,97 @@ struct SettingsView: View {
                 }
                 .card()
 
-                // Section 4: Advanced & Reset
+                // Section 4: History
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Label(L10n.t("history.title"), systemImage: "chart.xyaxis.line")
+                            .font(.system(size: 14, weight: .semibold))
+                        Spacer()
+                        Text(L10n.t("history.count", model.history.count))
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+
+                    Text("MacPulse keeps the last \(ScanHistory.limit) scans locally so it can show a score trend and what changed since yesterday.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    HStack {
+                        Button(L10n.t("onboarding.again")) {
+                            model.showSettings = false
+                            model.showOnboardingAgain()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+
+                        Spacer()
+
+                        Button(L10n.t("history.clear")) {
+                            model.clearHistory()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(model.history.isEmpty)
+                    }
+                }
+                .card()
+
+                // Section 5: Menu bar and alerts
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("Menu Bar & Alerts", systemImage: "bell.badge")
+                        .font(.system(size: 14, weight: .semibold))
+
+                    Toggle(isOn: Binding(
+                        get: { model.menuBarEnabled },
+                        set: { model.setMenuBarEnabled($0) }
+                    )) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(L10n.t("menubar.toggle"))
+                                .font(.system(size: 13, weight: .medium))
+                            Text(L10n.t("menubar.toggle.detail"))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .toggleStyle(.switch)
+
+                    Divider()
+
+                    Toggle(isOn: Binding(
+                        get: { model.scoreNotificationsEnabled },
+                        set: { model.setScoreNotifications($0) }
+                    )) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(L10n.t("notifications.toggle"))
+                                .font(.system(size: 13, weight: .medium))
+                            Text(L10n.t("notifications.toggle.detail"))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .toggleStyle(.switch)
+
+                    if model.scoreNotificationsEnabled {
+                        HStack(spacing: 12) {
+                            Text(L10n.t("notifications.threshold"))
+                                .font(.system(size: 13, weight: .medium))
+                            Picker("", selection: Binding(
+                                get: { model.scoreNotificationThreshold },
+                                set: { model.setNotificationThreshold($0) }
+                            )) {
+                                ForEach(Array(stride(from: 30, through: 95, by: 5)), id: \.self) { value in
+                                    Text("\(value)").tag(value)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(width: 80)
+                            Spacer()
+                        }
+                    }
+                }
+                .card()
+
+                // Section 6: Advanced & Reset
                 VStack(alignment: .leading, spacing: 12) {
                     Label("Advanced & Privacy", systemImage: "lock.shield")
                         .font(.system(size: 14, weight: .semibold))

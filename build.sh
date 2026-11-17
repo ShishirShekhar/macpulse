@@ -26,7 +26,7 @@ swiftc -swift-version 5 -O -parse-as-library \
   -Xcc -fmodules-cache-path="$CACHE_DIR" \
   -target "arm64-apple-macos${DEPLOY_TARGET}" \
   -sdk "$SDK" \
-  -framework SwiftUI -framework AppKit \
+  -framework SwiftUI -framework AppKit -framework UserNotifications \
   "${SOURCES[@]}" \
   -o "$BUILD/bin/MacPulse-arm64"
 
@@ -37,7 +37,7 @@ if swiftc -swift-version 5 -O -parse-as-library \
     -Xcc -fmodules-cache-path="$CACHE_DIR" \
     -target "x86_64-apple-macos${DEPLOY_TARGET}" \
     -sdk "$SDK" \
-    -framework SwiftUI -framework AppKit \
+    -framework SwiftUI -framework AppKit -framework UserNotifications \
     "${SOURCES[@]}" \
     -o "$BUILD/bin/MacPulse-x86_64" 2>/dev/null; then
   echo "▸ Building universal binary…"
@@ -59,8 +59,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
     <key>CFBundleIdentifier</key><string>com.macpulse.app</string>
     <key>CFBundleExecutable</key><string>MacPulse</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>1.1.1</string>
-    <key>CFBundleVersion</key><string>3</string>
+    <key>CFBundleShortVersionString</key><string>1.2.0</string>
+    <key>CFBundleVersion</key><string>4</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>LSMinimumSystemVersion</key><string>13.0</string>
     <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
