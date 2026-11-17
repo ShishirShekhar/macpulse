@@ -4,6 +4,17 @@ All notable changes to MacPulse are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-11-17
+
+### Added
+
+- **In-app UI Language Selector in Settings**:
+  - Direct selection of display language across English, German (`de`), French (`fr`), Spanish (`es`), and Japanese (`ja`), alongside macOS system default (`system`).
+  - Instant live re-rendering of all user interface copy upon switching without restarting the application.
+  - Persisted user language preference across app restarts and headless background runs.
+  - Reset integration: resetting all preferences in Settings restores default system language behavior.
+  - Unit test suite expanded to **1,441 tests** covering language selection state, dictionary completeness, and fallbacks.
+
 ## [1.5.0] - 2026-11-17
 
 ### Added
