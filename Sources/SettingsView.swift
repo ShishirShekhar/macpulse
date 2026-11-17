@@ -2,29 +2,29 @@ import SwiftUI
 
 struct ExcludableRuleDef: Identifiable {
     let id: String
-    let name: String
-    let detail: String
+    var name: String { L10n.t("settings.rule.\(id).name") }
+    var detail: String { L10n.t("settings.rule.\(id).detail") }
 }
 
 let availableExcludableRules: [ExcludableRuleDef] = [
-    ExcludableRuleDef(id: "battery", name: "Battery health", detail: "Advice for failing or degraded laptop batteries"),
-    ExcludableRuleDef(id: "disk", name: "Disk space", detail: "Warnings when free disk space drops below 10% or 15 GB"),
-    ExcludableRuleDef(id: "purge", name: "Memory purge", detail: "Reclaim inactive RAM when free memory is under 10% or swap exceeds 1 GB"),
-    ExcludableRuleDef(id: "notifications", name: "Notification Center", detail: "Restart suggestions when NotificationCenter consumes CPU"),
-    ExcludableRuleDef(id: "sleep", name: "Sleep timer", detail: "Offer to increase sleep timer on AC power from 1–5 minutes"),
-    ExcludableRuleDef(id: "thermal", name: "Thermal throttling", detail: "Advice when kernel_task throttles the CPU due to heat"),
-    ExcludableRuleDef(id: "windowserver", name: "WindowServer animation", detail: "Advice to close animated background tabs causing high CPU"),
-    ExcludableRuleDef(id: "quit", name: "Heavy apps", detail: "Suggestions to gracefully quit GUI apps using over 60% CPU"),
-    ExcludableRuleDef(id: "brew", name: "Homebrew services", detail: "Suggestions to stop idle running background Homebrew services"),
-    ExcludableRuleDef(id: "helper", name: "Background helpers", detail: "Suggestions to disable third-party startup helpers and daemons"),
-    ExcludableRuleDef(id: "timemachine", name: "Time Machine", detail: "Advice for a missing backup disk or a backup older than a week, and start-backup suggestions"),
-    ExcludableRuleDef(id: "backup", name: "Backup activity", detail: "Explains high CPU while Time Machine copies changes"),
-    ExcludableRuleDef(id: "spotlight", name: "Spotlight indexing", detail: "Explains high CPU while Spotlight indexes new files"),
-    ExcludableRuleDef(id: "dns", name: "DNS responder", detail: "Offer to flush the DNS cache when mDNSResponder is busy"),
-    ExcludableRuleDef(id: "smb", name: "Network shares", detail: "Advice when a mounted SMB share is using CPU"),
-    ExcludableRuleDef(id: "mdm", name: "Managed Mac", detail: "Information when this Mac is enrolled in mobile device management"),
-    ExcludableRuleDef(id: "sleep-caffeinate", name: "Keep-awake assertions", detail: "Offer to stop caffeinate processes holding wake-locks"),
-    ExcludableRuleDef(id: "peripheral-battery", name: "Accessory battery", detail: "Warnings when connected Bluetooth or HID device battery drops below 20%")
+    ExcludableRuleDef(id: "battery"),
+    ExcludableRuleDef(id: "disk"),
+    ExcludableRuleDef(id: "purge"),
+    ExcludableRuleDef(id: "notifications"),
+    ExcludableRuleDef(id: "sleep"),
+    ExcludableRuleDef(id: "thermal"),
+    ExcludableRuleDef(id: "windowserver"),
+    ExcludableRuleDef(id: "quit"),
+    ExcludableRuleDef(id: "brew"),
+    ExcludableRuleDef(id: "helper"),
+    ExcludableRuleDef(id: "timemachine"),
+    ExcludableRuleDef(id: "backup"),
+    ExcludableRuleDef(id: "spotlight"),
+    ExcludableRuleDef(id: "dns"),
+    ExcludableRuleDef(id: "smb"),
+    ExcludableRuleDef(id: "mdm"),
+    ExcludableRuleDef(id: "sleep-caffeinate"),
+    ExcludableRuleDef(id: "peripheral-battery")
 ]
 
 struct SettingsView: View {
@@ -38,7 +38,7 @@ struct SettingsView: View {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(Theme.accent)
-                    Text("MacPulse Settings")
+                    Text(L10n.t("settings.title"))
                         .font(.system(size: 20, weight: .bold, design: .rounded))
                     Spacer()
                 }
@@ -46,7 +46,7 @@ struct SettingsView: View {
                 // Section 1: Scan Schedule
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Label("Daily Background Check", systemImage: "clock.badge.checkmark")
+                        Label(L10n.t("settings.schedule.title"), systemImage: "clock.badge.checkmark")
                             .font(.system(size: 14, weight: .semibold))
                         Spacer()
                         Toggle("", isOn: Binding(
@@ -56,7 +56,7 @@ struct SettingsView: View {
                         .toggleStyle(.switch)
                     }
 
-                    Text("MacPulse uses a native per-user LaunchAgent (com.macpulse.daily) to run a silent check once a day without keeping an app open in the dock.")
+                    Text(L10n.t("settings.schedule.detail"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
@@ -64,7 +64,7 @@ struct SettingsView: View {
                         Divider()
 
                         HStack(spacing: 12) {
-                            Text("Scheduled Time:")
+                            Text(L10n.t("settings.schedule.time"))
                                 .font(.system(size: 13, weight: .medium))
 
                             // Hour picker
@@ -93,7 +93,7 @@ struct SettingsView: View {
 
                             Spacer()
 
-                            Text("Runs daily at \(model.formattedScheduleTime)")
+                            Text(L10n.t("settings.schedule.runsDailyAt", model.formattedScheduleTime))
                                 .font(.caption)
                                 .foregroundStyle(Theme.accent)
                         }
@@ -104,17 +104,17 @@ struct SettingsView: View {
                 // Section 2: Rule Exclusions
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Label("Rule Exclusions", systemImage: "line.3.horizontal.decrease.circle")
+                        Label(L10n.t("settings.exclusions.title"), systemImage: "line.3.horizontal.decrease.circle")
                             .font(.system(size: 14, weight: .semibold))
                         Spacer()
                         if !model.excludedRules.isEmpty {
-                            Text("\(model.excludedRules.count) excluded")
+                            Text(L10n.t("settings.exclusions.count", model.excludedRules.count))
                                 .font(.caption2)
                                 .foregroundStyle(Theme.warn)
                         }
                     }
 
-                    Text("Turn off recommendations you do not wish to see. Excluded rules will not produce suggestions in interactive or background scans.")
+                    Text(L10n.t("settings.exclusions.detail"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
@@ -149,11 +149,11 @@ struct SettingsView: View {
                 // Section 3: Declined Fixes
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Label("Declined Suggestions", systemImage: "xmark.bin")
+                        Label(L10n.t("settings.declined.title"), systemImage: "xmark.bin")
                             .font(.system(size: 14, weight: .semibold))
                         Spacer()
                         if !model.declined.isEmpty {
-                            Button("Restore All") {
+                            Button(L10n.t("settings.declined.restoreAll")) {
                                 model.restoreAll()
                             }
                             .buttonStyle(.borderless)
@@ -163,7 +163,7 @@ struct SettingsView: View {
                     }
 
                     if model.declined.isEmpty {
-                        Text("No suggestions have been declined.")
+                        Text(L10n.t("settings.declined.empty"))
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     } else {
@@ -174,7 +174,7 @@ struct SettingsView: View {
                                         .font(.system(size: 12, design: .monospaced))
                                         .foregroundStyle(.secondary)
                                     Spacer()
-                                    Button("Restore") {
+                                    Button(L10n.t("settings.declined.restore")) {
                                         model.declined.remove(id)
                                     }
                                     .buttonStyle(.bordered)
@@ -197,7 +197,7 @@ struct SettingsView: View {
                             .foregroundStyle(.tertiary)
                     }
 
-                    Text("MacPulse keeps the last \(ScanHistory.limit) scans locally so it can show a score trend and what changed since yesterday.")
+                    Text(L10n.t("settings.history.detail", ScanHistory.limit))
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
@@ -223,7 +223,7 @@ struct SettingsView: View {
 
                 // Section 5: Menu bar and alerts
                 VStack(alignment: .leading, spacing: 12) {
-                    Label("Menu Bar & Alerts", systemImage: "bell.badge")
+                    Label(L10n.t("settings.menubarAndAlerts.title"), systemImage: "bell.badge")
                         .font(.system(size: 14, weight: .semibold))
 
                     Toggle(isOn: Binding(
@@ -370,7 +370,7 @@ struct SettingsView: View {
 
                 // Section 8: Advanced & Reset
                 VStack(alignment: .leading, spacing: 12) {
-                    Label("Advanced & Privacy", systemImage: "lock.shield")
+                    Label(L10n.t("settings.advanced.title"), systemImage: "lock.shield")
                         .font(.system(size: 14, weight: .semibold))
 
                     Toggle(isOn: Binding(
@@ -378,9 +378,9 @@ struct SettingsView: View {
                         set: { model.showAdvancedCommands = $0 }
                     )) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Always show command preview")
+                            Text(L10n.t("settings.advanced.preview.title"))
                                 .font(.system(size: 13, weight: .medium))
-                            Text("Expands the exact shell command on all fix cards without needing to click Preview.")
+                            Text(L10n.t("settings.advanced.preview.detail"))
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
@@ -391,15 +391,34 @@ struct SettingsView: View {
 
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Reset All Data")
+                            Text(L10n.t("report.copy"))
                                 .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(Theme.bad)
-                            Text("Clears cached check results, recent activity history, and restores default preferences.")
+                            Text("Copies a clean, privacy-preserving markdown health report to your clipboard.")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Button("Reset Everything") {
+                        Button(L10n.t("report.copy")) {
+                            model.copyDiagnosticReport()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(model.result == nil)
+                    }
+
+                    Divider()
+
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(L10n.t("settings.advanced.reset.title"))
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Theme.bad)
+                            Text(L10n.t("settings.advanced.reset.detail"))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button(L10n.t("settings.advanced.reset.button")) {
                             model.resetAllData()
                         }
                         .buttonStyle(.bordered)

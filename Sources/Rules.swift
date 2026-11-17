@@ -39,121 +39,163 @@ struct RuleContext {
     var peripherals: [PeripheralBattery] = []
 }
 
-enum Rules {
-    private static let severityOrder: [Severity: Int] = [.high: 0, .medium: 1, .low: 2]
+// MARK: - Rule Protocol
 
-    static func build(_ context: RuleContext) -> [FixSuggestion] {
-        var fixes: [FixSuggestion] = []
+protocol DiagnosticRule {
+    var id: String { get }
+    func evaluate(context: RuleContext) -> [FixSuggestion]
+}
 
-        // Hardware — no automatic fix.
-        if context.profile.hasBattery,
-           context.batteryCondition == "Service Recommended",
-           context.batteryHealthPct < 80 {
-            fixes.append(FixSuggestion(
-                id: "battery",
-                title: L10n.t("rule.battery.title"),
-                detail: L10n.t(
-                    "rule.battery.detail",
-                    context.batteryHealthPct, context.batteryCycles, context.batteryCondition
-                ),
-                severity: context.batteryHealthPct < 60 ? .high : .medium,
-                command: "",
-                admin: false,
-                value: L10n.t("rule.battery.value", Int(context.batteryHealthPct))
-            ))
-        }
+// MARK: - Concrete Rules
 
-        if context.diskFreePct < 10 || context.diskFreeGB < 15 {
-            fixes.append(FixSuggestion(
-                id: "disk",
-                title: L10n.t("rule.disk.title"),
-                detail: L10n.t(
-                    "rule.disk.detail",
-                    Int(context.diskFreeGB), Int(context.diskFreePct)
-                ),
-                severity: context.diskFreePct < 5 ? .high : .medium,
-                command: "",
-                admin: false,
-                value: L10n.t("rule.disk.value", Int(context.diskFreeGB))
-            ))
-        }
+struct BatteryHealthRule: DiagnosticRule {
+    let id = "battery"
 
-        // Memory pressure.
-        if context.memFreePct < 10 || context.swapUsedMB > 1024 {
-            fixes.append(FixSuggestion(
-                id: "purge",
-                title: L10n.t("rule.purge.title"),
-                detail: L10n.t(
-                    "rule.purge.detail",
-                    Int(context.memFreePct), Int(context.swapUsedMB)
-                ),
-                severity: context.swapUsedMB > 2048 ? .high : .medium,
-                command: "purge",
-                admin: true,
-                value: L10n.t("rule.purge.value", Int(context.memFreePct))
-            ))
-        }
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
+        guard context.profile.hasBattery,
+              context.batteryCondition == "Service Recommended",
+              context.batteryHealthPct < 80 else { return [] }
 
-        // Stuck Notification Center.
-        if context.notificationCPU > 5 {
-            fixes.append(FixSuggestion(
-                id: "notifications",
-                title: L10n.t("rule.notifications.title"),
-                detail: L10n.t("rule.notifications.detail", Int(context.notificationCPU)),
-                severity: .medium,
-                command: "killall NotificationCenter 2>/dev/null; killall usernoted 2>/dev/null; true",
-                admin: false,
-                value: L10n.t("rule.notifications.value", Int(context.notificationCPU))
-            ))
-        }
+        return [FixSuggestion(
+            id: "battery",
+            title: L10n.t("rule.battery.title"),
+            detail: L10n.t(
+                "rule.battery.detail",
+                context.batteryHealthPct, context.batteryCycles, context.batteryCondition
+            ),
+            severity: context.batteryHealthPct < 60 ? .high : .medium,
+            command: "",
+            admin: false,
+            value: L10n.t("rule.battery.value", Int(context.batteryHealthPct))
+        )]
+    }
+}
 
-        // Short sleep timer (laptops and desktops both honour it on AC).
-        if context.acSleepMinutes > 0 && context.acSleepMinutes <= 5 {
-            fixes.append(FixSuggestion(
-                id: "sleep",
-                title: L10n.t("rule.sleep.title"),
-                detail: L10n.t(
-                    "rule.sleep.detail",
-                    context.acSleepMinutes,
-                    context.acSleepMinutes == 1 ? "" : "s"
-                ),
-                severity: .high,
-                command: "pmset -c sleep 30 displaysleep 10 disksleep 10",
-                admin: true,
-                value: L10n.t("rule.sleep.value", context.acSleepMinutes),
-                undoCommand: "pmset -c sleep \(context.acSleepMinutes) displaysleep 10 disksleep 10"
-            ))
-        }
+struct DiskSpaceRule: DiagnosticRule {
+    let id = "disk"
 
-        // Thermal throttling.
-        if context.kernelTaskCPU > 25 {
-            fixes.append(FixSuggestion(
-                id: "thermal",
-                title: L10n.t("rule.thermal.title"),
-                detail: L10n.t("rule.thermal.detail", Int(context.kernelTaskCPU)),
-                severity: context.kernelTaskCPU > 50 ? .high : .medium,
-                command: "",
-                admin: false,
-                value: L10n.t("rule.thermal.value", Int(context.kernelTaskCPU))
-            ))
-        }
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
+        guard context.diskFreePct < 10 || context.diskFreeGB < 15 else { return [] }
 
-        // WindowServer — usually animation in a background tab.
-        if context.interactive && context.windowServerCPU > 60 {
-            fixes.append(FixSuggestion(
-                id: "windowserver",
-                title: L10n.t("rule.windowserver.title"),
-                detail: L10n.t("rule.windowserver.detail", Int(context.windowServerCPU)),
-                severity: .medium,
-                command: "",
-                admin: false,
-                value: L10n.t("rule.windowserver.value", Int(context.windowServerCPU))
-            ))
-        }
+        return [FixSuggestion(
+            id: "disk",
+            title: L10n.t("rule.disk.title"),
+            detail: L10n.t(
+                "rule.disk.detail",
+                Int(context.diskFreeGB), Int(context.diskFreePct)
+            ),
+            severity: context.diskFreePct < 5 ? .high : .medium,
+            command: "",
+            admin: false,
+            value: L10n.t("rule.disk.value", Int(context.diskFreeGB))
+        )]
+    }
+}
 
-        // Time Machine: no destination at all, or a stale one.
+struct MemoryPurgeRule: DiagnosticRule {
+    let id = "purge"
+
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
+        guard context.memFreePct < 10 || context.swapUsedMB > 1024 else { return [] }
+
+        return [FixSuggestion(
+            id: "purge",
+            title: L10n.t("rule.purge.title"),
+            detail: L10n.t(
+                "rule.purge.detail",
+                Int(context.memFreePct), Int(context.swapUsedMB)
+            ),
+            severity: context.swapUsedMB > 2048 ? .high : .medium,
+            command: "purge",
+            admin: true,
+            value: L10n.t("rule.purge.value", Int(context.memFreePct))
+        )]
+    }
+}
+
+struct NotificationCenterRule: DiagnosticRule {
+    let id = "notifications"
+
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
+        guard context.notificationCPU > 5 else { return [] }
+
+        return [FixSuggestion(
+            id: "notifications",
+            title: L10n.t("rule.notifications.title"),
+            detail: L10n.t("rule.notifications.detail", Int(context.notificationCPU)),
+            severity: .medium,
+            command: "killall NotificationCenter 2>/dev/null; killall usernoted 2>/dev/null; true",
+            admin: false,
+            value: L10n.t("rule.notifications.value", Int(context.notificationCPU))
+        )]
+    }
+}
+
+struct SleepTimerRule: DiagnosticRule {
+    let id = "sleep"
+
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
+        guard context.acSleepMinutes > 0 && context.acSleepMinutes <= 5 else { return [] }
+
+        return [FixSuggestion(
+            id: "sleep",
+            title: L10n.t("rule.sleep.title"),
+            detail: L10n.t(
+                "rule.sleep.detail",
+                context.acSleepMinutes,
+                context.acSleepMinutes == 1 ? "" : "s"
+            ),
+            severity: .high,
+            command: "pmset -c sleep 30 displaysleep 10 disksleep 10",
+            admin: true,
+            value: L10n.t("rule.sleep.value", context.acSleepMinutes),
+            undoCommand: "pmset -c sleep \(context.acSleepMinutes) displaysleep 10 disksleep 10"
+        )]
+    }
+}
+
+struct ThermalThrottlingRule: DiagnosticRule {
+    let id = "thermal"
+
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
+        guard context.kernelTaskCPU > 25 else { return [] }
+
+        return [FixSuggestion(
+            id: "thermal",
+            title: L10n.t("rule.thermal.title"),
+            detail: L10n.t("rule.thermal.detail", Int(context.kernelTaskCPU)),
+            severity: context.kernelTaskCPU > 50 ? .high : .medium,
+            command: "",
+            admin: false,
+            value: L10n.t("rule.thermal.value", Int(context.kernelTaskCPU))
+        )]
+    }
+}
+
+struct WindowServerRule: DiagnosticRule {
+    let id = "windowserver"
+
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
+        guard context.interactive && context.windowServerCPU > 60 else { return [] }
+
+        return [FixSuggestion(
+            id: "windowserver",
+            title: L10n.t("rule.windowserver.title"),
+            detail: L10n.t("rule.windowserver.detail", Int(context.windowServerCPU)),
+            severity: .medium,
+            command: "",
+            admin: false,
+            value: L10n.t("rule.windowserver.value", Int(context.windowServerCPU))
+        )]
+    }
+}
+
+struct TimeMachineRule: DiagnosticRule {
+    let id = "timemachine"
+
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
         if !context.hasBackupDestination {
-            fixes.append(FixSuggestion(
+            return [FixSuggestion(
                 id: "timemachine-none",
                 title: L10n.t("rule.timemachine.none.title"),
                 detail: L10n.t("rule.timemachine.none.detail"),
@@ -161,9 +203,9 @@ enum Rules {
                 command: "",
                 admin: false,
                 value: L10n.t("rule.timemachine.none.value")
-            ))
+            )]
         } else if let days = context.lastBackupDays, days >= 7 {
-            fixes.append(FixSuggestion(
+            return [FixSuggestion(
                 id: "timemachine-stale",
                 title: L10n.t("rule.timemachine.stale.title"),
                 detail: L10n.t("rule.timemachine.stale.detail", days),
@@ -172,80 +214,111 @@ enum Rules {
                 admin: false,
                 value: L10n.t("rule.timemachine.stale.value", days),
                 undoCommand: "tmutil stopbackup"
-            ))
+            )]
         }
+        return []
+    }
+}
 
-        // Time Machine currently copying data. Informational: never offer to stop
-        // a backup the user started.
-        if context.backupdCPU > 25 {
-            fixes.append(FixSuggestion(
-                id: "backup",
-                title: L10n.t("rule.backup.title"),
-                detail: L10n.t("rule.backup.detail", Int(context.backupdCPU)),
-                severity: context.backupdCPU > 60 ? .medium : .low,
-                command: "",
-                admin: false,
-                value: L10n.t("rule.backup.value", Int(context.backupdCPU))
-            ))
-        }
+struct BackupActivityRule: DiagnosticRule {
+    let id = "backup"
 
-        // Spotlight indexing.
-        if context.spotlightCPU > 25 {
-            fixes.append(FixSuggestion(
-                id: "spotlight",
-                title: L10n.t("rule.spotlight.title"),
-                detail: L10n.t("rule.spotlight.detail", Int(context.spotlightCPU)),
-                severity: context.spotlightCPU > 60 ? .medium : .low,
-                command: "",
-                admin: false,
-                value: L10n.t("rule.spotlight.value", Int(context.spotlightCPU))
-            ))
-        }
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
+        guard context.backupdCPU > 25 else { return [] }
 
-        // DNS responder stuck. Reloading it is safe and needs root.
-        if context.dnsCPU > 10 {
-            fixes.append(FixSuggestion(
-                id: "dns",
-                title: L10n.t("rule.dns.title"),
-                detail: L10n.t("rule.dns.detail", Int(context.dnsCPU)),
-                severity: context.dnsCPU > 40 ? .medium : .low,
-                command: "dscacheutil -flushcache; killall -HUP mDNSResponder 2>/dev/null; true",
-                admin: true,
-                value: L10n.t("rule.dns.value", Int(context.dnsCPU))
-            ))
-        }
+        return [FixSuggestion(
+            id: "backup",
+            title: L10n.t("rule.backup.title"),
+            detail: L10n.t("rule.backup.detail", Int(context.backupdCPU)),
+            severity: context.backupdCPU > 60 ? .medium : .low,
+            command: "",
+            admin: false,
+            value: L10n.t("rule.backup.value", Int(context.backupdCPU))
+        )]
+    }
+}
 
-        // SMB traffic: advice only, never unmount a share behind the user's back.
-        if context.smbCPU > 5, !context.smbMounts.isEmpty {
-            fixes.append(FixSuggestion(
-                id: "smb",
-                title: L10n.t("rule.smb.title"),
-                detail: L10n.t(
-                    "rule.smb.detail",
-                    context.smbMounts.prefix(2).joined(separator: ", "),
-                    Int(context.smbCPU)
-                ),
-                severity: context.smbCPU > 40 ? .medium : .low,
-                command: "",
-                admin: false,
-                value: L10n.t("rule.smb.value", Int(context.smbCPU))
-            ))
-        }
+struct SpotlightRule: DiagnosticRule {
+    let id = "spotlight"
 
-        // Managed Mac: purely informational. MacPulse never touches MDM settings.
-        if context.mdmEnrolled {
-            fixes.append(FixSuggestion(
-                id: "mdm",
-                title: L10n.t("rule.mdm.title"),
-                detail: L10n.t("rule.mdm.detail"),
-                severity: .low,
-                command: "",
-                admin: false,
-                value: L10n.t("rule.mdm.value")
-            ))
-        }
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
+        guard context.spotlightCPU > 25 else { return [] }
 
-        // One app eating a core.
+        return [FixSuggestion(
+            id: "spotlight",
+            title: L10n.t("rule.spotlight.title"),
+            detail: L10n.t("rule.spotlight.detail", Int(context.spotlightCPU)),
+            severity: context.spotlightCPU > 60 ? .medium : .low,
+            command: "",
+            admin: false,
+            value: L10n.t("rule.spotlight.value", Int(context.spotlightCPU))
+        )]
+    }
+}
+
+struct DNSResponderRule: DiagnosticRule {
+    let id = "dns"
+
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
+        guard context.dnsCPU > 10 else { return [] }
+
+        return [FixSuggestion(
+            id: "dns",
+            title: L10n.t("rule.dns.title"),
+            detail: L10n.t("rule.dns.detail", Int(context.dnsCPU)),
+            severity: context.dnsCPU > 40 ? .medium : .low,
+            command: "dscacheutil -flushcache; killall -HUP mDNSResponder 2>/dev/null; true",
+            admin: true,
+            value: L10n.t("rule.dns.value", Int(context.dnsCPU))
+        )]
+    }
+}
+
+struct SMBSharesRule: DiagnosticRule {
+    let id = "smb"
+
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
+        guard context.smbCPU > 5, !context.smbMounts.isEmpty else { return [] }
+
+        return [FixSuggestion(
+            id: "smb",
+            title: L10n.t("rule.smb.title"),
+            detail: L10n.t(
+                "rule.smb.detail",
+                context.smbMounts.prefix(2).joined(separator: ", "),
+                Int(context.smbCPU)
+            ),
+            severity: context.smbCPU > 40 ? .medium : .low,
+            command: "",
+            admin: false,
+            value: L10n.t("rule.smb.value", Int(context.smbCPU))
+        )]
+    }
+}
+
+struct MDMEnrollmentRule: DiagnosticRule {
+    let id = "mdm"
+
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
+        guard context.mdmEnrolled else { return [] }
+
+        return [FixSuggestion(
+            id: "mdm",
+            title: L10n.t("rule.mdm.title"),
+            detail: L10n.t("rule.mdm.detail"),
+            severity: .low,
+            command: "",
+            admin: false,
+            value: L10n.t("rule.mdm.value")
+        )]
+    }
+}
+
+struct HeavyAppsRule: DiagnosticRule {
+    let id = "quit"
+
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
+        var fixes: [FixSuggestion] = []
         for app in context.heavyApps.prefix(2) {
             fixes.append(FixSuggestion(
                 id: "quit-\(app.bundleID)",
@@ -259,8 +332,15 @@ enum Rules {
                 nativeTarget: String(app.pid)
             ))
         }
+        return fixes
+    }
+}
 
-        // Homebrew services that start at login.
+struct BrewServicesRule: DiagnosticRule {
+    let id = "brew"
+
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
+        var fixes: [FixSuggestion] = []
         for service in context.brewServices.prefix(3) {
             let safeName = service.replacingOccurrences(
                 of: "[^A-Za-z0-9._@-]",
@@ -279,8 +359,15 @@ enum Rules {
                 undoCommand: "brew services start \(service)"
             ))
         }
+        return fixes
+    }
+}
 
-        // Third-party background helpers (VPN, VM, tablet, game launcher).
+struct LaunchHelpersRule: DiagnosticRule {
+    let id = "helper"
+
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
+        var fixes: [FixSuggestion] = []
         for helper in context.helpers.prefix(3) {
             guard !ProbeParsers.isProtectedLabel(helper.label) else { continue }
             guard helper.plistPath != nil else { continue }
@@ -305,8 +392,15 @@ enum Rules {
                 undoCommand: undo
             ))
         }
+        return fixes
+    }
+}
 
-        // Login items (only read in interactive scans).
+struct LoginItemsRule: DiagnosticRule {
+    let id = "login"
+
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
+        var fixes: [FixSuggestion] = []
         for name in context.loginItems where !name.isEmpty {
             guard name.range(of: "^[A-Za-z0-9 ._-]+$", options: .regularExpression) != nil else { continue }
             let escaped = name
@@ -322,8 +416,15 @@ enum Rules {
                 value: L10n.t("rule.login.value")
             ))
         }
+        return fixes
+    }
+}
 
-        // Sleep assertions (e.g. caffeinate preventing idle sleep)
+struct SleepAssertionsRule: DiagnosticRule {
+    let id = "sleep-caffeinate"
+
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
+        var fixes: [FixSuggestion] = []
         for assertion in context.sleepAssertions {
             if assertion.process == "caffeinate" {
                 fixes.append(FixSuggestion(
@@ -337,8 +438,15 @@ enum Rules {
                 ))
             }
         }
+        return fixes
+    }
+}
 
-        // Peripheral batteries low (keyboard, mouse, trackpad)
+struct PeripheralBatteryRule: DiagnosticRule {
+    let id = "peripheral-battery"
+
+    func evaluate(context: RuleContext) -> [FixSuggestion] {
+        var fixes: [FixSuggestion] = []
         for peripheral in context.peripherals {
             if peripheral.percent <= 20 {
                 let slug = peripheral.name.lowercased()
@@ -355,7 +463,42 @@ enum Rules {
                 ))
             }
         }
+        return fixes
+    }
+}
 
+// MARK: - Rule Catalogue
+
+enum Rules {
+    private static let severityOrder: [Severity: Int] = [.high: 0, .medium: 1, .low: 2]
+
+    static let allRules: [DiagnosticRule] = [
+        BatteryHealthRule(),
+        DiskSpaceRule(),
+        MemoryPurgeRule(),
+        NotificationCenterRule(),
+        SleepTimerRule(),
+        ThermalThrottlingRule(),
+        WindowServerRule(),
+        TimeMachineRule(),
+        BackupActivityRule(),
+        SpotlightRule(),
+        DNSResponderRule(),
+        SMBSharesRule(),
+        MDMEnrollmentRule(),
+        HeavyAppsRule(),
+        BrewServicesRule(),
+        LaunchHelpersRule(),
+        LoginItemsRule(),
+        SleepAssertionsRule(),
+        PeripheralBatteryRule()
+    ]
+
+    static func build(_ context: RuleContext) -> [FixSuggestion] {
+        var fixes: [FixSuggestion] = []
+        for rule in allRules {
+            fixes.append(contentsOf: rule.evaluate(context: context))
+        }
         return fixes.sorted { (severityOrder[$0.severity] ?? 3) < (severityOrder[$1.severity] ?? 3) }
     }
 }

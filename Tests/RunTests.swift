@@ -506,6 +506,19 @@ struct RunTests {
             assertFalse(fix.value.isEmpty, "Rule \(fix.id) has a value")
         }
 
+        // DiagnosticRule protocol and direct evaluation
+        assertEqual(Rules.allRules.count, 19, "Catalogue contains 19 modular diagnostic rules")
+        let batteryRule = BatteryHealthRule()
+        assertEqual(batteryRule.id, "battery", "Battery rule ID matches")
+        assertTrue(batteryRule.evaluate(context: laptopBadBatteryContext).count == 1, "Battery rule evaluates directly")
+        assertTrue(batteryRule.evaluate(context: desktopBadBatteryContext).isEmpty, "Battery rule ignores desktops")
+
+        let diskRule = DiskSpaceRule()
+        var lowDiskCtx = genericContext
+        lowDiskCtx.diskFreeGB = 8
+        lowDiskCtx.diskFreePct = 5
+        assertTrue(diskRule.evaluate(context: lowDiskCtx).count == 1, "Disk rule evaluates directly")
+
         // MARK: - 3. Scoring Tests
 
         print("▸ Testing Scoring…")
@@ -853,6 +866,32 @@ struct RunTests {
             resultWithPeripherals.attentionItems.contains { $0.contains("Magic Mouse") },
             "Attention items report low peripheral battery"
         )
+
+        // Diagnostic report generation
+        print("▸ Testing DiagnosticReport…")
+        var profiledResult = resultWithPeripherals
+        profiledResult.profile = DeviceProfile(
+            modelIdentifier: "MacBookPro18,1",
+            chip: "Apple M1 Pro",
+            cores: 10,
+            performanceCores: 8,
+            efficiencyCores: 2,
+            isAppleSilicon: true,
+            isLaptop: true,
+            hasBattery: true,
+            osMajor: 14,
+            ramGB: 32
+        )
+        let report = DiagnosticReport.generate(from: profiledResult, appVersion: "1.7.0")
+        assertTrue(report.contains("# MacPulse Diagnostic Report"), "Report contains header")
+        assertTrue(report.contains("Apple M1 Pro"), "Report includes chip name")
+        assertTrue(report.contains("Magic Mouse"), "Report includes peripheral name")
+        assertTrue(report.contains("caffeinate"), "Report includes caffeinate sleep assertion")
+        assertTrue(report.contains("Zero network telemetry"), "Report contains privacy footer")
+
+        // Without profile fallback
+        let unprofiledReport = DiagnosticReport.generate(from: resultWithPeripherals, appVersion: "1.7.0")
+        assertTrue(unprofiledReport.contains("Mac mini (M1, 2020)"), "Report falls back to modelName when profile is nil")
 
         // Summary
         print("\n===============================")
