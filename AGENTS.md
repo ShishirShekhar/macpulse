@@ -91,7 +91,7 @@ or anything that silently changes system settings.
   `L10n.t(key, args)` with a visible key fallback and tests for every shipped string.
 - **Empty and error states** for no cached scan and partial readings, plus a
   Settings section for history, menu bar, notifications and re-running onboarding.
-- **275 unit tests pass** via `./test.sh` (was 144 before Phase 4 & 5). CI runs
+- **312 unit tests pass** via `./test.sh` (was 275 before Phase 6). CI runs
   the suite on every push and pull request.
 
 **Phase 4 & Phase 5 added and verified**
@@ -105,6 +105,16 @@ or anything that silently changes system settings.
 - **Opt-in software updates**: Isolated `Sources/UpdateCheck.swift` checks GitHub
   Releases when opted in. Off by default; zero telemetry or network calls in core.
 - **Community rule contribution standards** documented in `CONTRIBUTING.md`.
+
+**Phase 6 added and verified**
+
+- **Sleep assertions inspector**: `pmset -g assertions` parser in `Sources/Probes/SleepProbe.swift`
+  with actionable rule for terminating rogue `caffeinate` background processes (`kill <pid>`).
+- **Peripheral battery monitoring**: `ioreg -r -l -k BatteryPercent` parser in
+  `Sources/Probes/PeripheralProbe.swift` tracking connected Bluetooth and HID accessories
+  (Magic Mouse, Magic Keyboard, Magic Trackpads) with advice warnings when battery drops ≤ 20%.
+- **Desktop battery card enhancement**: Displays accessory charge levels even when no
+  internal battery is present.
 
 ### Known bugs / incomplete
 
@@ -270,6 +280,8 @@ Empty `command` with no native action means "advice only" — the UI shows only 
 | `dns` | mDNSResponder > 20 % CPU | `dscacheutil -flushcache; killall -HUP mDNSResponder` | yes | Safe cache flush clears stuck lookups |
 | `smb` | smbd > 5 % CPU and SMB share mounted | none (advice) | no | Suggests disconnecting unneeded network mounts |
 | `mdm` | Mac is enrolled in MDM | none (advice) | no | Informational only; never disables profiles |
+| `sleep-caffeinate` | caffeinate holding sleep assertion | `kill <pid>` | no | Restores normal idle sleep |
+| `peripheral-battery` | connected Bluetooth/HID peripheral battery ≤ 20 % | none (advice) | no | High below 10 % |
 
 **Protected labels:** `com.apple.*`, `com.macpulse.*`, `homebrew.*`, `com.openssh.*`,
 `org.openbsd.*`, running GUI applications (`application.*`, `uikitapplication.*`),
@@ -473,6 +485,14 @@ user's apps; all 144 unit tests pass.
 - [x] Localized UI; community rule contributions.
 - [x] Optional opt-in update check for the direct build only.
 
+### Phase 6 — Power & Peripheral Intelligence (done)
+- [x] Sleep assertions inspector (`pmset -g assertions`) in `SleepProbe` detecting rogue wake-locks.
+- [x] Actionable `sleep-caffeinate-<pid>` rule to terminate forgotten keep-awake processes.
+- [x] Peripheral battery monitoring in `PeripheralProbe` (`ioreg -r -l -k BatteryPercent`) for Magic Mouse, Keyboard, Trackpads, headsets.
+- [x] `peripheral-battery-<slug>` warning rule when accessory battery drops to ≤ 20%.
+- [x] Desktop battery card enhancement displaying connected accessories when no internal battery exists.
+- [x] 312 unit tests pass via `./test.sh`.
+
 ---
 
 ## 10. Decisions needed
@@ -514,6 +534,7 @@ Developer ID rebrand), and do it before a tagged release if it ever changes.
 | 2026-11-17 | Time Machine, Spotlight, DNS, SMB, MDM rules | Deeper diagnostic coverage without destructive kills |
 | 2026-11-17 | Opt-in update check against GitHub API | Zero tracking, disabled by default, isolated in `Sources/UpdateCheck.swift` |
 | 2026-11-17 | Full dashboard UI localized via `L10n` | Central catalogue for clean translation and community contributions |
+| 2026-11-17 | Sleep assertions and peripheral battery probes | Non-intrusive wake-lock debugging and accessory battery warnings; 312 unit tests |
 
 ---
 

@@ -125,3 +125,27 @@ struct SystemSample {
     let uptime: String
     let acSleepMinutes: Int
 }
+
+/// A power management assertion held by a process preventing sleep or display off.
+struct SleepAssertion: Codable, Equatable, Hashable {
+    let pid: Int
+    let process: String
+    let assertionType: String
+    let name: String
+}
+
+/// Sample of system-wide sleep assertions.
+struct SleepAssertionSample: Equatable {
+    let assertions: [SleepAssertion]
+    let preventSystemSleep: Bool
+    let preventDisplaySleep: Bool
+
+    static let none = SleepAssertionSample(assertions: [], preventSystemSleep: false, preventDisplaySleep: false)
+}
+
+/// Battery percentage reported by a connected Bluetooth or HID peripheral.
+struct PeripheralBattery: Codable, Equatable, Hashable {
+    let name: String
+    let percent: Int
+}
+

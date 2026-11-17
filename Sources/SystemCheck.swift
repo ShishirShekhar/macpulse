@@ -14,6 +14,8 @@ enum SystemCheck {
         let display = DisplayProbe.sample()
         let backup = BackupProbe.sample()
         let management = ManagementProbe.sample()
+        let sleepSample = SleepProbe.sample()
+        let peripherals = PeripheralProbe.sample()
 
         // Headless scans cannot ask for Automation permission, so the startup
         // probe keeps the cached login items from the previous scan.
@@ -61,7 +63,9 @@ enum SystemCheck {
             dnsCPU: display.dnsCPU,
             smbCPU: display.smbCPU,
             smbMounts: display.smbMounts,
-            mdmEnrolled: management.mdmEnrolled
+            mdmEnrolled: management.mdmEnrolled,
+            sleepAssertions: sleepSample.assertions,
+            peripherals: peripherals
         )
         let fixes = Rules.build(context)
 
@@ -115,7 +119,9 @@ enum SystemCheck {
             fixes: fixes,
             score: scoring.score,
             subscores: scoring.subscores,
-            profile: profile
+            profile: profile,
+            sleepAssertions: sleepSample.assertions,
+            peripherals: peripherals
         )
     }
 

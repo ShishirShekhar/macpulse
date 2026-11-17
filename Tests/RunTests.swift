@@ -233,6 +233,31 @@ struct RunTests {
             "Missing process contributes no CPU"
         )
 
+        // Power and sleep assertions
+        let assertionsSample = ProbeParsers.sleepAssertions(readFixture("pmset_assertions.txt"))
+        assertTrue(assertionsSample.preventSystemSleep, "System sleep prevention parsed from pmset")
+        assertFalse(assertionsSample.preventDisplaySleep, "Display sleep prevention is false")
+        assertEqual(assertionsSample.assertions.count, 2, "Found 2 owning processes")
+        assertEqual(assertionsSample.assertions[0].pid, 12345, "caffeinate PID parsed")
+        assertEqual(assertionsSample.assertions[0].process, "caffeinate", "caffeinate process name parsed")
+        assertEqual(assertionsSample.assertions[0].assertionType, "PreventUserIdleSystemSleep", "Assertion type parsed")
+        assertEqual(assertionsSample.assertions[0].name, "caffeinate", "Assertion name parsed")
+        assertEqual(assertionsSample.assertions[1].pid, 175, "coreaudiod PID parsed")
+        assertEqual(assertionsSample.assertions[1].process, "coreaudiod", "coreaudiod process name parsed")
+
+        let emptyAssertions = ProbeParsers.sleepAssertions("2026-11-17 17:49:09 +0530 \nNo assertions.\nNo kernel assertions.\n")
+        assertFalse(emptyAssertions.preventSystemSleep, "No system sleep prevention on idle machine")
+        assertEqual(emptyAssertions.assertions.count, 0, "No assertions parsed from empty output")
+
+        // Peripheral batteries
+        let peripherals = ProbeParsers.peripheralBatteries(readFixture("ioreg_peripherals.txt"))
+        assertEqual(peripherals.count, 2, "Found 2 peripherals in fixture")
+        assertEqual(peripherals[0].name, "Magic Mouse", "Magic Mouse name parsed")
+        assertEqual(peripherals[0].percent, 85, "Magic Mouse 85% battery parsed")
+        assertEqual(peripherals[1].name, "Magic Keyboard", "Magic Keyboard name parsed")
+        assertEqual(peripherals[1].percent, 15, "Magic Keyboard 15% battery parsed")
+        assertEqual(ProbeParsers.peripheralBatteries("").count, 0, "Empty ioreg output yields no peripherals")
+
         // MARK: - 2. Rules Tests
 
         print("▸ Testing Rules…")
@@ -436,6 +461,38 @@ struct RunTests {
             Rules.build(desktopBadBatteryContext).contains { $0.id == "mdm" },
             "Unmanaged Mac has no MDM rule"
         )
+
+        // Sleep assertion rule (caffeinate)
+        var caffeinateContext = genericContext
+        caffeinateContext.sleepAssertions = [
+            SleepAssertion(pid: 12345, process: "caffeinate", assertionType: "PreventUserIdleSystemSleep", name: "caffeinate")
+        ]
+        let caffeinateFixes = Rules.build(caffeinateContext)
+        assertTrue(caffeinateFixes.contains { $0.id == "sleep-caffeinate-12345" }, "caffeinate fix suggested")
+        if let fix = caffeinateFixes.first(where: { $0.id == "sleep-caffeinate-12345" }) {
+            assertEqual(fix.command, "kill 12345", "Command terminates caffeinate")
+            assertFalse(fix.admin, "No admin rights needed to stop user caffeinate")
+            assertEqual(fix.severity, .medium, "Severity is medium")
+        }
+
+        // Peripheral battery rules
+        var peripheralContext = genericContext
+        peripheralContext.peripherals = [
+            PeripheralBattery(name: "Magic Mouse", percent: 85),
+            PeripheralBattery(name: "Magic Keyboard", percent: 15),
+            PeripheralBattery(name: "Magic Trackpad", percent: 8)
+        ]
+        let peripheralFixes = Rules.build(peripheralContext)
+        assertFalse(peripheralFixes.contains { $0.id == "peripheral-battery-magic-mouse" }, "Healthy peripheral produces no fix")
+        assertTrue(peripheralFixes.contains { $0.id == "peripheral-battery-magic-keyboard" }, "15% keyboard produces warning")
+        assertTrue(peripheralFixes.contains { $0.id == "peripheral-battery-magic-trackpad" }, "8% trackpad produces warning")
+        if let keyboardFix = peripheralFixes.first(where: { $0.id == "peripheral-battery-magic-keyboard" }) {
+            assertEqual(keyboardFix.severity, .medium, "15% battery has medium severity")
+            assertTrue(keyboardFix.command.isEmpty, "Hardware warning has no command")
+        }
+        if let trackpadFix = peripheralFixes.first(where: { $0.id == "peripheral-battery-magic-trackpad" }) {
+            assertEqual(trackpadFix.severity, .high, "8% battery has high severity")
+        }
 
         // Every rule reads its copy from the catalogue, so no title can be blank.
         for fix in Rules.build(genericContext) + noBackupFixes + staleBackupFixes {
@@ -682,6 +739,57 @@ struct RunTests {
 
         let invalidReleaseJSON = "{}".data(using: .utf8)!
         assertEqual(UpdateCheck.parseRelease(data: invalidReleaseJSON), nil, "Invalid release JSON returns nil")
+
+        // CheckResult attention items and status with peripherals & assertions
+        let resultWithPeripherals = CheckResult(
+            date: Date(),
+            model: "Macmini9,1",
+            modelName: "Mac mini (M1, 2020)",
+            osVersion: "14.0",
+            uptime: "2d",
+            cpuCores: 8,
+            load1: 0.5,
+            load5: 0.5,
+            load15: 0.5,
+            memTotalGB: 16,
+            memFreePct: 50,
+            memCompressedGB: 1,
+            swapUsedMB: 0,
+            diskFreeGB: 200,
+            diskTotalGB: 500,
+            batteryHealthPct: 0,
+            batteryCycles: 0,
+            batteryCondition: "No battery",
+            batteryCharge: 0,
+            charging: false,
+            onAC: true,
+            kernelTaskCPU: 2,
+            windowServerCPU: 5,
+            notificationCPU: 1,
+            spotlightIndexing: false,
+            acSleepMinutes: 15,
+            loginItems: [],
+            launchAgentCount: 2,
+            topProcesses: [],
+            fixes: [],
+            score: 100,
+            sleepAssertions: [
+                SleepAssertion(pid: 999, process: "caffeinate", assertionType: "PreventUserIdleSystemSleep", name: "caffeinate")
+            ],
+            peripherals: [
+                PeripheralBattery(name: "Magic Mouse", percent: 8)
+            ]
+        )
+        assertEqual(resultWithPeripherals.batteryStatus, .bad, "Peripheral with 8% battery causes bad batteryStatus even on desktop")
+        assertEqual(resultWithPeripherals.sleepStatus, .warn, "caffeinate assertion causes warn sleepStatus")
+        assertTrue(
+            resultWithPeripherals.attentionItems.contains { $0.contains("caffeinate") },
+            "Attention items report caffeinate blocking sleep"
+        )
+        assertTrue(
+            resultWithPeripherals.attentionItems.contains { $0.contains("Magic Mouse") },
+            "Attention items report low peripheral battery"
+        )
 
         // Summary
         print("\n===============================")

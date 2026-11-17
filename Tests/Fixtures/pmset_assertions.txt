@@ -1,0 +1,10 @@
+2026-11-17 17:49:09 +0530 
+Assertion status system-wide for ApplePushService:
+   PreventUserIdleSystemSleep              1
+   PreventUserIdleDisplaySleep             0
+   ApplePushServiceTask                    0
+
+Listed by owning process:
+   pid 12345(caffeinate): [0x0000000d00008000] 00:05:32 PreventUserIdleSystemSleep named: "caffeinate"
+   pid 175(coreaudiod): [0x0000000200000002] 00:10:05 PreventUserIdleSystemSleep named: "com.apple.audio.AppleHDAEngineOutput:1B,0,1,1:0.context.preventuseridlesleep"
+No kernel assertions.
