@@ -6,7 +6,7 @@
 > are redirects — they must never duplicate content. If you learn something new,
 > update **this file only**.
 
-Last updated: 2026-11-17 · App version: 1.2.0 · Status: **Phase 1 and Phase 2 complete and merged into `main`** (<https://github.com/ShishirShekhar/macpulse>); v1.2.0 tag not yet published.
+Last updated: 2026-11-17 · App version: 1.2.0 · Status: **Phase 1 and Phase 2 complete; v1.2.0 published** (<https://github.com/ShishirShekhar/macpulse/releases/tag/v1.2.0>).
 
 ---
 
@@ -340,13 +340,17 @@ The engine is now device-generic; the remaining work is polish and test coverage
   templates.
 - CI: `.github/workflows/build.yml` runs on `macos-latest`, builds universal, validates
   the headless JSON, verifies the bundle, and uploads `MacPulse.app` as an artifact.
-  **Verified green on 2026-11-16** (52 s). Unit tests are still to be added.
+  **Verified green on 2026-11-16** (52 s). `./test.sh` runs 144 tests on every push
+  and pull request.
 - Release: `.github/workflows/release.yml` runs on a `v*` tag, builds, optionally signs
   and notarizes when secrets exist, then publishes a zipped `.app` + `checksums.txt`.
 - First release: tag **v1.0.0** published 2026-11-16 with assets
   `MacPulse-v1.0.0.zip` and `checksums.txt`, plus hand-written release notes. The
   workflow ran green (1 m 12 s). To cut a future release, tag `vX.Y.Z` and push the tag;
   keep `CFBundleShortVersionString` in `build.sh` in sync.
+- **v1.2.0** published 2026-11-17 (`MacPulse-v1.2.0.zip` + `checksums.txt`, curated
+  notes). Downloaded artifact verified: checksum OK, universal `x86_64 arm64`,
+  ad-hoc signature intact, `CFBundleShortVersionString` 1.2.0 (build 4).
 
 **Signing reality:** there is no Apple Developer Program membership and no signing
 identity on the dev machine, so releases are **ad-hoc signed, not notarized**. Users
