@@ -350,6 +350,139 @@ struct RunTests {
         let compoundedResult = Scoring.evaluate(compoundedInput)
         assertEqual(compoundedResult.score, 35, "Compounded penalties add up (100 - 65 = 35)")
 
+        // MARK: - 4. History and alerts
+
+        print("▸ Testing history, alerts and strings…")
+
+        let day0 = Date(timeIntervalSince1970: 1_700_000_000)
+        func historyEntry(
+            _ offset: TimeInterval,
+            score: Int,
+            fixes: [HistoryFix] = []
+        ) -> HistoryEntry {
+            HistoryEntry(
+                date: day0.addingTimeInterval(offset),
+                score: score,
+                fixes: fixes,
+                memFreePct: 30,
+                diskFreePct: 40,
+                load1: 1
+            )
+        }
+
+        // Appending keeps the newest entry first.
+        var historyEntries: [HistoryEntry] = []
+        for index in 0..<3 {
+            historyEntries = ScanHistory.append(
+                historyEntry(TimeInterval(index), score: 90 - index),
+                to: historyEntries
+            )
+        }
+        assertEqual(historyEntries.count, 3, "History stores every new scan")
+        assertEqual(historyEntries.first?.score, 88, "Newest scan is first")
+        assertEqual(historyEntries.last?.score, 90, "Oldest scan is last")
+
+        // Pruning keeps exactly the limit and drops the oldest entries.
+        historyEntries = []
+        for index in 0..<35 {
+            historyEntries = ScanHistory.append(
+                historyEntry(TimeInterval(index), score: 100 - index),
+                to: historyEntries
+            )
+        }
+        assertEqual(historyEntries.count, ScanHistory.limit, "History is capped at 30 scans")
+        assertEqual(historyEntries.first?.score, 66, "Newest scan survives pruning")
+        assertEqual(historyEntries.last?.score, 95, "Only the oldest scans are pruned")
+
+        // Previous-entry lookup respects the date.
+        let older = historyEntry(0, score: 70)
+        let newer = historyEntry(3600, score: 80)
+        assertEqual(
+            ScanHistory.previousEntry(before: newer.date, in: [newer, older])?.score,
+            70,
+            "Previous entry is the next older scan"
+        )
+
+        // "Since yesterday" only compares against an earlier calendar day.
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let yesterday = historyEntry(0, score: 70)
+        let today = historyEntry(86_400, score: 85)
+        assertEqual(
+            ScanHistory.previousDailyEntry(before: today.date, in: [today, yesterday], calendar: calendar)?.score,
+            70,
+            "Daily comparison finds yesterday's scan"
+        )
+        assertEqual(
+            ScanHistory.previousDailyEntry(before: today.date, in: [today], calendar: calendar),
+            nil,
+            "Daily comparison has no result when only today exists"
+        )
+
+        // Change summary shows score movement and fix churn.
+        let battery = HistoryFix(id: "battery", title: "Battery health")
+        let diskFix = HistoryFix(id: "disk", title: "Disk space")
+        let change = ScanHistory.change(
+            from: historyEntry(0, score: 80, fixes: [battery]),
+            to: historyEntry(3600, score: 70, fixes: [battery, diskFix])
+        )
+        assertEqual(change.scoreDelta, -10, "Score delta computed")
+        assertEqual(change.addedFixes, [diskFix], "New recommendation detected")
+        assertTrue(change.resolvedFixes.isEmpty, "No recommendation resolved")
+        assertTrue(change.hasChanges, "Changed history flagged")
+        assertTrue(
+            ScanHistory.summary(for: change).contains("Score down 10 points"),
+            "Summary mentions the score drop"
+        )
+
+        let resolved = ScanHistory.change(
+            from: historyEntry(0, score: 70, fixes: [battery, diskFix]),
+            to: historyEntry(3600, score: 80, fixes: [])
+        )
+        assertEqual(resolved.resolvedFixes, [battery, diskFix], "Resolved recommendations detected")
+        assertTrue(resolved.hasChanges, "Resolved history flagged")
+
+        let unchanged = ScanHistory.change(
+            from: historyEntry(0, score: 80, fixes: [battery]),
+            to: historyEntry(3600, score: 80, fixes: [battery])
+        )
+        assertFalse(unchanged.hasChanges, "Identical scans report no change")
+
+        // Threshold alerts only fire when the score crosses downward.
+        assertTrue(
+            ScoreAlert.shouldNotify(previousScore: 75, currentScore: 60, threshold: 70, enabled: true),
+            "Alert fires when score crosses below threshold"
+        )
+        assertFalse(
+            ScoreAlert.shouldNotify(previousScore: 60, currentScore: 55, threshold: 70, enabled: true),
+            "No repeat alert while already below threshold"
+        )
+        assertFalse(
+            ScoreAlert.shouldNotify(previousScore: 75, currentScore: 60, threshold: 70, enabled: false),
+            "No alert when notifications are off"
+        )
+        assertFalse(
+            ScoreAlert.shouldNotify(previousScore: nil, currentScore: 40, threshold: 70, enabled: true),
+            "No alert without a previous score"
+        )
+        assertFalse(
+            ScoreAlert.shouldNotify(previousScore: 80, currentScore: 70, threshold: 70, enabled: true),
+            "No alert when the score only reaches the threshold"
+        )
+
+        // String catalogue is complete and has a visible fallback.
+        assertFalse(L10n.t("onboarding.title").isEmpty, "Onboarding title is defined")
+        assertEqual(
+            L10n.t("history.scoreUp", 5),
+            "Score up 5 points",
+            "Formatted string template applies values"
+        )
+        assertEqual(L10n.t("missing.key"), "missing.key", "Missing keys fall back to the key")
+        assertTrue(L10n.keys.count > 20, "Catalogue contains the shipping strings")
+        for (key, value) in L10n.strings {
+            assertFalse(value.isEmpty, "String '\(key)' is not empty")
+        }
+
         // Summary
         print("\n===============================")
         print("Passed: \(passed)")

@@ -71,6 +71,14 @@ struct ContentView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         HeaderView(result: result)
 
+                        if model.history.count > 1, let change = model.changeSinceYesterday {
+                            HistorySection(
+                                history: model.history,
+                                change: change,
+                                isEarlierDay: model.comparisonIsFromEarlierDay
+                            )
+                        }
+
                         if model.showScoreBreakdown, let subscores = result.subscores, !subscores.isEmpty {
                             ScoreBreakdownView(subscores: subscores)
                         }
@@ -103,8 +111,10 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity)
                 }
                 .scrollIndicators(.automatic)
-            } else {
+            } else if model.isChecking {
                 LoadingView()
+            } else {
+                ErrorOrEmptyView()
             }
 
             if let banner = model.banner {
@@ -131,6 +141,14 @@ struct ContentView: View {
                 SettingsView()
                     .environmentObject(model)
             }
+        }
+        .sheet(isPresented: Binding(
+            get: { model.showOnboarding },
+            set: { model.showOnboarding = $0 }
+        )) {
+            OnboardingView()
+                .environmentObject(model)
+                .interactiveDismissDisabled()
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.86), value: model.banner?.id)
         .onAppear { model.startIfNeeded() }
@@ -324,6 +342,106 @@ struct ScoreBreakdownView: View {
                     }
                 }
             }
+        }
+        .card()
+    }
+}
+
+// MARK: - History
+
+struct Sparkline: View {
+    /// Oldest to newest; the caller passes the stored history (newest first).
+    let scores: [Int]
+
+    var body: some View {
+        GeometryReader { geometry in
+            let values = scores.reversed().map(Double.init)
+            let minimum = values.min() ?? 0
+            let maximum = values.max() ?? 100
+            let span = max(1, maximum - minimum)
+
+            Path { path in
+                for (index, value) in values.enumerated() {
+                    let x = values.count <= 1
+                        ? geometry.size.width / 2
+                        : geometry.size.width * CGFloat(index) / CGFloat(values.count - 1)
+                    let y = geometry.size.height
+                        - CGFloat((value - minimum) / span) * (geometry.size.height - 4)
+                        - 2
+                    if index == 0 {
+                        path.move(to: CGPoint(x: x, y: y))
+                    } else {
+                        path.addLine(to: CGPoint(x: x, y: y))
+                    }
+                }
+            }
+            .stroke(
+                Theme.accent,
+                style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
+            )
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+struct HistorySection: View {
+    let history: [HistoryEntry]
+    let change: HistoryChange
+    let isEarlierDay: Bool
+
+    private var deltaColor: Color {
+        if change.scoreDelta > 0 { return Theme.good }
+        if change.scoreDelta < 0 { return Theme.bad }
+        return Color(nsColor: .secondaryLabelColor)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Label(L10n.t("history.title"), systemImage: "chart.xyaxis.line")
+                    .font(.system(size: 13, weight: .semibold))
+                Spacer()
+                Text(L10n.t("history.subtitle", min(history.count, ScanHistory.limit)))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Divider()
+
+            HStack(alignment: .center, spacing: 18) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Sparkline(scores: history.map(\.score))
+                        .frame(height: 46)
+                    HStack {
+                        Text("\(history.last?.score ?? 0)")
+                        Spacer()
+                        Text("\(history.first?.score ?? 0)")
+                    }
+                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+                }
+                .frame(maxWidth: .infinity)
+
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(String(format: "%+d", change.scoreDelta))
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(deltaColor)
+                    Text("pts")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(width: 78, alignment: .trailing)
+            }
+
+            Text(isEarlierDay ? L10n.t("history.sinceYesterday") : L10n.t("history.sinceLastCheck"))
+                .font(.system(size: 12, weight: .semibold))
+                .padding(.top, 2)
+
+            Text(ScanHistory.summary(for: change))
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .card()
     }
@@ -952,7 +1070,7 @@ struct Footer: View {
             .buttonStyle(.link)
             .font(.system(size: 11))
 
-            Text("v1.1.1")
+            Text("v1.2.0")
                 .font(.system(size: 10))
                 .foregroundStyle(.tertiary)
         }
@@ -982,6 +1100,44 @@ struct BannerView: View {
     }
 }
 
+/// Shown when the app has no cached scan and is not checking. The error variant
+/// explains a partial scan instead of leaving an empty window.
+struct ErrorOrEmptyView: View {
+    @EnvironmentObject private var model: AppModel
+
+    private var hasError: Bool { model.lastError != nil }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: hasError ? "exclamationmark.triangle.fill" : "waveform.path.ecg.rectangle")
+                .font(.system(size: 40, weight: .semibold))
+                .foregroundStyle(hasError ? Theme.warn : Theme.accent)
+
+            VStack(spacing: 6) {
+                Text(hasError ? L10n.t("empty.errorTitle") : L10n.t("empty.title"))
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                Text(model.lastError ?? L10n.t("empty.body"))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 420)
+            }
+
+            Button {
+                model.runCheck()
+            } label: {
+                Label(L10n.t("common.checkNow"), systemImage: "arrow.clockwise")
+                    .frame(minWidth: 120)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Theme.accent)
+            .controlSize(.large)
+        }
+        .padding(30)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
 struct LoadingView: View {
     @EnvironmentObject private var model: AppModel
 
@@ -989,10 +1145,10 @@ struct LoadingView: View {
         VStack(spacing: 14) {
             ProgressView()
                 .controlSize(.large)
-            Text("Scanning this Mac…")
+            Text(L10n.t("loading.title"))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.secondary)
-            Text("CPU, memory, disk, battery, startup items and top processes")
+            Text(L10n.t("loading.body"))
                 .font(.caption)
                 .foregroundStyle(.tertiary)
             if let error = model.lastError {
