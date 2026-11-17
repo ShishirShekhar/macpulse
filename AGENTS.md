@@ -6,7 +6,7 @@
 > are redirects — they must never duplicate content. If you learn something new,
 > update **this file only**.
 
-Last updated: 2026-11-16 · App version: 1.1.1 · Status: **v1.1.1 published on GitHub** (<https://github.com/ShishirShekhar/macpulse>); Phase 1 complete, Phase 2 roadmap polish open.
+Last updated: 2026-11-17 · App version: 1.2.0 · Status: **Phase 1 complete; Phase 2 complete on `phase-2` pending merge** (<https://github.com/ShishirShekhar/macpulse>).
 
 ---
 
@@ -77,29 +77,45 @@ or anything that silently changes system settings.
 - Earlier fixes proven on the dev machine: NotificationCenter reset, sleep timer,
   Homebrew service, vendor login helper, system VPN daemon, login items.
 
+**Phase 2 (v1.2.0) added and verified**
+
+- **First-run onboarding** explaining what is read, the privacy guarantee, the
+  Automation/admin prompts, and the daily check. The first scan now starts only
+  after the tour is dismissed, so macOS never prompts while the dashboard loads.
+- **Scan history** of the last 30 checks in `history.json`, with a score sparkline,
+  a "since yesterday" (or "since the last check") summary, and new/cleared fix names.
+- **Opt-in menu bar extra** showing the latest score, Check Now, Open MacPulse and Quit.
+- **Opt-in local score alert** when the score crosses a configurable threshold
+  (default 70). Notifications are local `UNUserNotificationCenter` alerts only.
+- **Localization scaffolding** in `Sources/Strings.swift`: one English catalogue,
+  `L10n.t(key, args)` with a visible key fallback and tests for every shipped string.
+- **Empty and error states** for no cached scan and partial readings, plus a
+  Settings section for history, menu bar, notifications and re-running onboarding.
+- **144 unit tests pass** via `./test.sh` (was 62 before Phase 2). CI already runs
+  the suite on every push and pull request.
+
 ### Known bugs / incomplete
 
-1. **First launch can prompt for Automation** (System Events) while the dashboard is
-   still loading. Show onboarding before prompting (Phase 2).
-2. **Spotlight field is semantically wrong.** `mdutil -s /` reports whether indexing
+1. **Spotlight field is semantically wrong.** `mdutil -s /` reports whether indexing
    is *enabled*, not whether it is *active*; hidden in the UI but still in the model.
-3. **`windowServerCPU` is not scored in headless scans** because nothing is
+2. **`windowServerCPU` is not scored in headless scans** because nothing is
    compositing. Interactive scans still score it above 45 %.
-4. **Fixed 09:00 schedule**, no Settings window, no way to change time or exclusions.
-5. **No tests, no CI, no git repository, no license** yet (next step).
-6. **No localization**; parsing assumes English `top`/`vm_stat`/`pmset` output, but
-   all commands force `LC_ALL=C` so translated output cannot leak in.
-7. **Ad-hoc signing** means TCC permissions can reset after rebuilds, and downloaded
+3. **Localization is scaffolded, not translated.** All new Phase 2 copy lives in
+   `L10n`; older dashboard strings are still inline English. Parsing assumes English
+   `top`/`vm_stat`/`pmset` output, but every command forces `LC_ALL=C`.
+4. **Ad-hoc signing** means TCC permissions can reset after rebuilds, and downloaded
    releases trigger Gatekeeper until a Developer ID exists.
-8. **No notarization** — no Apple Developer identity is installed
+5. **No notarization** — no Apple Developer identity is installed
    (`security find-identity` → 0 valid).
-9. **App-level Quit is graceful by design.** Apps with unsaved work can refuse; the
+6. **App-level Quit is graceful by design.** Apps with unsaved work can refuse; the
    activity row reports that instead of force killing.
-10. **Helper detection is deliberately conservative**: only vendor-hinted labels or
-    busy non-Apple agents are surfaced. Quiet unknown helpers are not offered.
-11. **Homebrew detection requires Homebrew**; without `brew`, no service suggestions.
-12. **`DeviceProfile` is not persisted** in `last-check.json`; the UI infers a desktop
-    from the "No battery" condition.
+7. **Helper detection is deliberately conservative**: only vendor-hinted labels or
+   busy non-Apple agents are surfaced. Quiet unknown helpers are not offered.
+8. **Homebrew detection requires Homebrew**; without `brew`, no service suggestions.
+9. **Notification permission is per user.** If it is denied in System Settings, the
+   toggle reports the denial and stays off; MacPulse never re-prompts in a loop.
+10. **The menu bar extra is off by default.** Enabling it from Settings inserts the
+    `MenuBarExtra` scene; disabling removes it immediately.
 
 ---
 
@@ -107,16 +123,22 @@ or anything that silently changes system settings.
 
 ```
 Launcher.main()                         Sources/MacPulseApp.swift
-├── "--check"  → SystemCheck.collect(interactive: false) → save JSON → exit(0)
+├── "--check"  → collect → save last-check.json → HistoryStore.record()
+│                → Notifications.postIfNeeded() → exit(0)
 └── otherwise  → MacPulseUI (SwiftUI App)
-                 └── WindowGroup → ContentView
-                     └── @StateObject AppModel      Sources/AppModel.swift
-                         ├── result: CheckResult?   (Codable, cached to disk)
-                         ├── runCheck()             background scan
-                         ├── approve(fix)           Shell.run / Shell.admin / native quit
-                         ├── undo(item)             reverse command
-                         ├── decline/restore        persisted in UserDefaults
-                         └── setDailyCheck()        LaunchAgent install/uninstall
+                 ├── WindowGroup(id: "main") → ContentView
+                 │   └── @StateObject AppModel      Sources/AppModel.swift
+                 │       ├── result: CheckResult?   (Codable, cached to disk)
+                 │       ├── history: [HistoryEntry] (last 30, history.json)
+                 │       ├── runCheck()             background scan + history + alert
+                 │       ├── approve(fix)           Shell.run / Shell.admin / native quit
+                 │       ├── undo(item)             reverse command
+                 │       ├── decline/restore        persisted in UserDefaults
+                 │       ├── completeOnboarding()   installs agent, then first scan
+                 │       └── setDailyCheck()        LaunchAgent install/uninstall
+                 ├── MenuBarExtra (opt-in) → MenuBarContent
+                 ├── Onboarding sheet → OnboardingView
+                 └── Settings scene → SettingsView
 
 SystemCheck.collect()                   Sources/SystemCheck.swift
 ├── sysctl (model, chip, P/E cores, load, memory, boot time)
@@ -134,22 +156,35 @@ SystemCheck.collect()                   Sources/SystemCheck.swift
 |---|---|
 | `Sources/MacPulseApp.swift` | Entry point, headless `--check`, window + menu commands |
 | `Sources/AppModel.swift` | Observable state, scan orchestration, fix/undo execution, banners |
-| `Sources/SystemCheck.swift` | Probing, parsing, generic detectors, scoring, persistence |
+| `Sources/SystemCheck.swift` | Probe orchestration, persistence paths, `--check` entry |
+| `Sources/Probes/*.swift` | Typed CPU, memory, disk, battery, display, startup and system probes |
+| `Sources/Scoring.swift` | Score weights, subscores and the `ScoreInput` boundary |
 | `Sources/Rules.swift` | Declarative rule catalogue and user-facing fix copy |
 | `Sources/Models.swift` | `CheckResult`, `FixSuggestion`, `DeviceProfile`, `Status`, derived statuses |
-| `Sources/ContentView.swift` | Entire UI (dashboard, cards, fixes, activity, footer, banner) |
+| `Sources/History.swift` | `HistoryEntry`, 30-scan pruning, change summary, `HistoryStore` |
+| `Sources/ScoreAlert.swift` | Pure threshold-crossing policy for the optional alert |
+| `Sources/Notifications.swift` | Local `UNUserNotificationCenter` post/clear helpers |
+| `Sources/Strings.swift` | Single English string catalogue (`L10n`) for Phase 2 surfaces |
+| `Sources/ContentView.swift` | Dashboard, trend card, fixes, activity, empty/error states |
+| `Sources/OnboardingView.swift` | First-run tour shown before the first scan |
+| `Sources/MenuBarView.swift` | Opt-in `MenuBarExtra` content and score label |
+| `Sources/SettingsView.swift` | Settings scene: schedule, exclusions, history, alerts, reset |
 | `Sources/Shell.swift` | Timed process execution, C locale, admin via osascript |
 | `Sources/LaunchAgent.swift` | Writes/loads `com.macpulse.daily` plist |
 | `Tools/MakeIcon.swift` | Renders the 1024 px icon with AppKit at build time |
 | `build.sh` | Compile → bundle → icon → ad-hoc sign → optional install |
+| `test.sh` | Headless CLT-compatible test runner |
 | `README.md` | End-user documentation only |
 
 **Data written**
 
 - `~/Library/Application Support/MacPulse/last-check.json` — latest `CheckResult`
+- `~/Library/Application Support/MacPulse/history.json` — last 30 `HistoryEntry` values
 - `~/Library/Logs/MacPulse.log` — headless scan output
 - `~/Library/LaunchAgents/com.macpulse.daily.plist` — daily schedule
-- `UserDefaults` (`com.macpulse.app`) — `declinedFixIDs`
+- `UserDefaults` (`com.macpulse.app`) — `declinedFixIDs`, `excludedRuleIDs`,
+  `hasCompletedOnboarding`, `menubarEnabled`, `scoreNotificationsEnabled`,
+  `scoreNotificationThreshold`, `scheduleHour`, `scheduleMinute`
 - `~/Library/Preferences/company.thebrowser.dia.plist` — **never touched** (read-only
   diagnostics of other apps are out of scope)
 
@@ -259,13 +294,19 @@ The engine is now device-generic; the remaining work is polish and test coverage
    reset data, "show advanced commands" toggle.
 8. ✅ **Preview before approve**: expandable command preview, admin badge, native-quit
    label, and Undo for reversible fixes.
-9. ⬜ **History**: keep the last 30 scans; show score trend; prune older data.
+9. ✅ **History**: keep the last 30 scans in `history.json`, prune older data, show a
+   sparkline and a "since yesterday" change summary with new/cleared recommendations.
 10. ✅ **UI scale & accessibility**: 920×640 and 1600×1200 verified; score breakdown
-    view added; VoiceOver labels and keyboard accessibility in place.
-11. ⬜ **Onboarding**: explain what is read, what is never uploaded, permission prompts,
-    and how the daily schedule works.
+    and trend views added; VoiceOver labels and keyboard accessibility in place;
+    empty/error states cover a missing or partial scan.
+11. ✅ **Onboarding**: explains what is read, what is never uploaded, the Automation
+    and admin prompts, and the daily schedule. It appears before the first scan.
 12. ✅ **No network code** in the core. Update checks, if added later, must be opt-in and
     isolated (direct-distribution build only).
+13. ✅ **Optional surfaces are opt-in**: menu bar extra and local score alerts default
+    to off, use only local APIs, and can be turned off at any time in Settings.
+14. ✅ **Localization scaffolding**: `L10n` holds one English catalogue with a visible
+    key fallback; new Phase 2 surfaces read every string through it.
 
 ---
 
@@ -366,25 +407,27 @@ kept in §14 for historical context only.
 - [x] Settings window (schedule time, exclusions, declined fixes, data reset).
 - [x] Command preview + undo for reversible fixes; Recent Activity list.
 - [x] Unit tests: parsers (top/vm_stat/pmset/ioreg/brew JSON) with fixtures; rule
-      applicability; scoring (`./test.sh` headless CLT-safe runner, 62 tests passing).
+      applicability; scoring, history, alerts and strings (`./test.sh` headless
+      CLT-safe runner, 144 tests passing).
 - [x] Accessibility labels + keyboard navigation + larger text check.
 
 **Acceptance:** clean build with no warnings; headless scan < 3 s on M1/8 GB;
 a Mac without a battery never reports battery issues; no rule mentions a specific
-user's apps; all 62 unit tests pass.
+user's apps; all 144 unit tests pass.
 
-### Phase 2 — Product polish (v1.1)
-- [ ] First-run onboarding + permissions explained.
-- [ ] Settings: schedule time, exclusions, declined-fix management, data reset.
-- [ ] History (30 scans), trend sparkline, "what changed since yesterday".
-- [ ] Menu bar extra with score (opt-in).
-- [ ] Optional local notification when score drops below a threshold.
-- [ ] Localization scaffolding (English first; strings in one catalogue).
-- [ ] Dark/light and window-size QA; empty/error states.
+### Phase 2 — Product polish (v1.2.0, done)
+- [x] First-run onboarding + permissions explained before the first scan.
+- [x] Settings: schedule time, exclusions, declined-fix management, data reset.
+- [x] History (last 30 scans), trend sparkline, "what changed since yesterday".
+- [x] Menu bar extra with score (opt-in, off by default).
+- [x] Optional local notification when the score crosses a configurable threshold.
+- [x] Localization scaffolding (English first; one `L10n` catalogue with key fallback).
+- [x] Dark/light and window-size QA; empty/error states for missing or partial scans.
+- [x] 144 unit tests via `./test.sh`; CI runs them on every push and pull request.
 
 ### Phase 3 — GitHub release (done)
 - [x] `git init`, `.gitignore`, LICENSE, CONTRIBUTING, SECURITY, issue templates.
-- [x] CI build on macOS runners (tests to be added when the test target exists).
+- [x] CI build on macOS runners, including `./test.sh` on every push and pull request.
 - [x] Release workflow that works unsigned today and accepts Developer ID secrets later.
 - [x] Push to <https://github.com/ShishirShekhar/macpulse> (public, MIT).
 - [x] Tag v1.0.0, publish zipped `.app` + checksums + release notes.
@@ -434,6 +477,10 @@ Developer ID rebrand), and do it before a tagged release if it ever changes.
 | 2026-11-16 | Undo command + Recent Activity | Reversible actions build trust |
 | 2026-11-16 | Conservative helper detection | Never offer to disable unknown/Apple services |
 | 2026-11-16 | Bundle ID stays `com.macpulse.app` | No store distribution; avoids TCC resets |
+| 2026-11-17 | Onboarding gates the first scan | macOS Automation prompt must not appear over a half-loaded dashboard |
+| 2026-11-17 | Menu bar extra and score alerts are opt-in | Keep the default app quiet and permission-free |
+| 2026-11-17 | History keeps 30 local scans | Enough for a trend without unbounded disk growth |
+| 2026-11-17 | One `L10n` catalogue, English first | Future translations add a dictionary, not view edits |
 
 ---
 

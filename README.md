@@ -16,6 +16,8 @@ time.
 - Works on laptops and desktops, with or without a battery
 - **No telemetry, no analytics, no network calls** — everything stays on your Mac
 - Daily scan at 09:00 via a per-user LaunchAgent; manual scan with **Check Now** (⌘R)
+- First-run tour, 30-scan history with a score trend, and a native Settings window
+- Optional menu bar score and local alerts when the score drops
 
 ## Install
 
@@ -100,9 +102,38 @@ dashboard.
 
 Logs: `~/Library/Logs/MacPulse.log`
 
+The first-run tour explains the daily check before it is installed, and you can
+change the time, turn it off, or re-run the tour from **Settings** (⌘,).
+
+## History and trend
+
+MacPulse keeps the last 30 checks locally and shows a score sparkline on the
+dashboard. Below it, a short summary explains what changed since yesterday (or
+since the last check): the score movement and any new or cleared recommendations.
+History can be cleared from **Settings → Health trend**.
+
+Only the score, the date, the recommendation IDs and titles, and a few key
+metrics are stored — never file contents or personal data.
+
+## Menu bar and alerts (optional)
+
+Both are off by default:
+
+- **Menu bar score** adds a small MacPulse item with the latest score, **Check
+  Now**, **Open MacPulse** and **Quit**.
+- **Score alerts** post a local macOS notification when the score drops below a
+  threshold you choose (default 70). Alerts fire only when the score crosses the
+  threshold, not on every scan, and use `UNUserNotificationCenter` — no push
+  service and no network.
+
+Enable or disable either one in **Settings → Menu Bar & Alerts**.
+
 ## Data
 
-`~/Library/Application Support/MacPulse/last-check.json` — the latest result.
+- `~/Library/Application Support/MacPulse/last-check.json` — the latest result.
+- `~/Library/Application Support/MacPulse/history.json` — the last 30 scans
+  (score, date, recommendation IDs and key metrics).
+
 The app opens this folder from the **Data folder** link in the footer.
 
 Nothing is uploaded. There are no accounts, identifiers, crash reports or update
@@ -114,6 +145,8 @@ pings.
 - **Automation (System Events)** — used to read and remove login items. macOS
   asks once; if you deny it, the rest of the app still works and the last known
   login-item list is kept.
+- **Notifications** — requested only when you turn on score alerts. If you deny
+  it, the toggle reports that and stays off; MacPulse never re-prompts in a loop.
 
 ## Uninstall
 
