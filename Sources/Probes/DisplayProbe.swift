@@ -15,8 +15,11 @@ enum DisplayProbe {
         let top = ProbeParsers.topProcesses(
             Shell.value("top -l 2 -o cpu -n 30 -stats pid,command,cpu 2>/dev/null")
         )
-        let mdutil = Shell.value("mdutil -s / 2>/dev/null")
         let smbMounts = ProbeParsers.smbMounts(Shell.value("mount 2>/dev/null"))
+        let spotlightCPU = ProbeParsers.totalCPU(
+            of: ["mds", "mds_stores", "mdworker", "mdworker_shared"],
+            in: top
+        )
 
         return DisplaySample(
             top: top,
@@ -27,12 +30,9 @@ enum DisplayProbe {
                 cpu(of: "usernoted", in: top)
             ),
             heavyApps: heavyApps(from: top),
-            spotlightIndexing: ProbeParsers.spotlightIndexing(mdutil),
+            spotlightIndexing: ProbeParsers.isSpotlightIndexing(cpu: spotlightCPU),
             backupdCPU: ProbeParsers.totalCPU(of: ["backupd"], in: top),
-            spotlightCPU: ProbeParsers.totalCPU(
-                of: ["mds", "mds_stores", "mdworker", "mdworker_shared"],
-                in: top
-            ),
+            spotlightCPU: spotlightCPU,
             dnsCPU: ProbeParsers.totalCPU(of: ["mDNSResponder"], in: top),
             smbCPU: ProbeParsers.totalCPU(of: ["smbd"], in: top),
             smbMounts: smbMounts

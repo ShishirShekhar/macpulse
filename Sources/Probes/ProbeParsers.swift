@@ -152,8 +152,14 @@ enum ProbeParsers {
 
     // MARK: - Spotlight
 
-    /// `mdutil -s /` reports whether indexing is *enabled*, which is the only
-    /// thing this field can honestly claim.
+    /// Returns true if Spotlight worker processes (mds, mds_stores, mdworker) are
+    /// actively consuming CPU above the threshold (default 10%), indicating active
+    /// background indexing rather than simple configuration status.
+    static func isSpotlightIndexing(cpu: Double, threshold: Double = 10.0) -> Bool {
+        cpu >= threshold
+    }
+
+    /// Legacy helper for mdutil output parsing kept for backward-compatibility.
     static func spotlightIndexing(_ mdutilOutput: String) -> Bool {
         mdutilOutput.contains("Indexing enabled") && !mdutilOutput.contains("disabled")
     }
