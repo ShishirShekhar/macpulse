@@ -762,6 +762,19 @@ struct RunTests {
         // Reset override
         L10n.overrideLanguage = nil
 
+        // Language selector switching
+        assertEqual(L10n.t("settings.language.title"), "Language", "Default settings.language.title is Language")
+        L10n.overrideLanguage = "de"
+        assertEqual(L10n.t("settings.language.title"), "Sprache", "German settings.language.title")
+        L10n.overrideLanguage = "fr"
+        assertEqual(L10n.t("settings.language.title"), "Langue", "French settings.language.title")
+        L10n.overrideLanguage = "es"
+        assertEqual(L10n.t("settings.language.title"), "Idioma", "Spanish settings.language.title")
+        L10n.overrideLanguage = "ja"
+        assertEqual(L10n.t("settings.language.title"), "言語", "Japanese settings.language.title")
+        L10n.overrideLanguage = nil
+        assertEqual(L10n.t("settings.language.title"), "Language", "Reset override restores default language")
+
         // Software update version comparison and parsing (Phase 5)
         print("▸ Testing UpdateCheck…")
         assertTrue(UpdateCheck.isVersion("1.2.1", newerThan: "1.2.0"), "Patch bump is recognized as newer")
