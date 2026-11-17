@@ -506,6 +506,19 @@ struct RunTests {
             assertFalse(fix.value.isEmpty, "Rule \(fix.id) has a value")
         }
 
+        // DiagnosticRule protocol and direct evaluation
+        assertEqual(Rules.allRules.count, 19, "Catalogue contains 19 modular diagnostic rules")
+        let batteryRule = BatteryHealthRule()
+        assertEqual(batteryRule.id, "battery", "Battery rule ID matches")
+        assertTrue(batteryRule.evaluate(context: laptopBadBatteryContext).count == 1, "Battery rule evaluates directly")
+        assertTrue(batteryRule.evaluate(context: desktopBadBatteryContext).isEmpty, "Battery rule ignores desktops")
+
+        let diskRule = DiskSpaceRule()
+        var lowDiskCtx = genericContext
+        lowDiskCtx.diskFreeGB = 8
+        lowDiskCtx.diskFreePct = 5
+        assertTrue(diskRule.evaluate(context: lowDiskCtx).count == 1, "Disk rule evaluates directly")
+
         // MARK: - 3. Scoring Tests
 
         print("▸ Testing Scoring…")
