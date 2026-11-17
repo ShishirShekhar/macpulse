@@ -16,7 +16,13 @@ let availableExcludableRules: [ExcludableRuleDef] = [
     ExcludableRuleDef(id: "windowserver", name: "WindowServer animation", detail: "Advice to close animated background tabs causing high CPU"),
     ExcludableRuleDef(id: "quit", name: "Heavy apps", detail: "Suggestions to gracefully quit GUI apps using over 60% CPU"),
     ExcludableRuleDef(id: "brew", name: "Homebrew services", detail: "Suggestions to stop idle running background Homebrew services"),
-    ExcludableRuleDef(id: "helper", name: "Background helpers", detail: "Suggestions to disable third-party startup helpers and daemons")
+    ExcludableRuleDef(id: "helper", name: "Background helpers", detail: "Suggestions to disable third-party startup helpers and daemons"),
+    ExcludableRuleDef(id: "timemachine", name: "Time Machine", detail: "Advice for a missing backup disk or a backup older than a week, and start-backup suggestions"),
+    ExcludableRuleDef(id: "backup", name: "Backup activity", detail: "Explains high CPU while Time Machine copies changes"),
+    ExcludableRuleDef(id: "spotlight", name: "Spotlight indexing", detail: "Explains high CPU while Spotlight indexes new files"),
+    ExcludableRuleDef(id: "dns", name: "DNS responder", detail: "Offer to flush the DNS cache when mDNSResponder is busy"),
+    ExcludableRuleDef(id: "smb", name: "Network shares", detail: "Advice when a mounted SMB share is using CPU"),
+    ExcludableRuleDef(id: "mdm", name: "Managed Mac", detail: "Information when this Mac is enrolled in mobile device management")
 ]
 
 struct SettingsView: View {
@@ -268,7 +274,62 @@ struct SettingsView: View {
                 }
                 .card()
 
-                // Section 6: Advanced & Reset
+                // Section 6: Software Updates (Opt-in)
+                VStack(alignment: .leading, spacing: 12) {
+                    Label(L10n.t("updates.title"), systemImage: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 14, weight: .semibold))
+
+                    Toggle(isOn: Binding(
+                        get: { model.checkForUpdates },
+                        set: { model.checkForUpdates = $0 }
+                    )) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(L10n.t("updates.toggle"))
+                                .font(.system(size: 13, weight: .medium))
+                            Text(L10n.t("updates.toggle.detail"))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .toggleStyle(.switch)
+
+                    Divider()
+
+                    HStack {
+                        Button(L10n.t("updates.checkNow")) {
+                            model.triggerUpdateCheck(manual: true)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(model.isCheckingForUpdates)
+
+                        if model.isCheckingForUpdates {
+                            ProgressView().controlSize(.small)
+                                .padding(.leading, 6)
+                        }
+
+                        if let status = model.updateStatus {
+                            Text(status)
+                                .font(.caption)
+                                .foregroundStyle(model.availableUpdate != nil ? Theme.accent : .secondary)
+                                .padding(.leading, 6)
+                        }
+
+                        Spacer()
+
+                        if let release = model.availableUpdate, let url = URL(string: release.htmlURL) {
+                            Button(L10n.t("updates.download")) {
+                                NSWorkspace.shared.open(url)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                            .tint(Theme.accent)
+                        }
+                    }
+                }
+                .card()
+
+                // Section 7: Advanced & Reset
                 VStack(alignment: .leading, spacing: 12) {
                     Label("Advanced & Privacy", systemImage: "lock.shield")
                         .font(.system(size: 14, weight: .semibold))

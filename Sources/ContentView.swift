@@ -87,11 +87,11 @@ struct ContentView: View {
                             AttentionView(items: result.attentionItems)
                         }
 
-                        SectionLabel(title: "System health", icon: "gauge.medium")
+                        SectionLabel(title: L10n.t("dashboard.systemHealth"), icon: "gauge.medium")
                         MetricGrid(result: result)
 
                         HStack(spacing: 6) {
-                            SectionLabel(title: "Recommended fixes", icon: "wrench.and.screwdriver.fill")
+                            SectionLabel(title: L10n.t("dashboard.recommendedFixes"), icon: "wrench.and.screwdriver.fill")
                             CountBadge(count: model.visibleFixes.count)
                             Spacer()
                         }
@@ -101,7 +101,7 @@ struct ContentView: View {
                             ActivitySection()
                         }
 
-                        SectionLabel(title: "Top processes", icon: "list.bullet.rectangle")
+                        SectionLabel(title: L10n.t("dashboard.topProcesses"), icon: "list.bullet.rectangle")
                         ProcessSection(processes: result.topProcesses)
 
                         Footer(result: result)
@@ -192,9 +192,9 @@ struct HeaderView: View {
                 HStack(spacing: 7) {
                     Label("macOS \(result.osVersion)", systemImage: "apple.logo")
                     Text("·").foregroundStyle(.quaternary)
-                    Label("Up \(result.uptime)", systemImage: "clock")
+                    Label(L10n.t("dashboard.upTime", result.uptime), systemImage: "clock")
                     Text("·").foregroundStyle(.quaternary)
-                    Text("Checked \(relative(result.date))")
+                    Text(L10n.t("dashboard.checked", relative(result.date)))
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -222,7 +222,7 @@ struct HeaderView: View {
                             } else {
                                 Image(systemName: "arrow.clockwise")
                             }
-                            Text(model.isChecking ? "Checking…" : "Check Now")
+                            Text(model.isChecking ? L10n.t("dashboard.checking") : L10n.t("dashboard.checkNow"))
                         }
                         .frame(minWidth: 108)
                     }
@@ -243,7 +243,7 @@ struct HeaderView: View {
                     .accessibilityLabel("Open MacPulse Settings")
                 }
 
-                Text(model.dailyCheck ? "Daily at \(model.formattedScheduleTime)" : "Daily check off")
+                Text(model.dailyCheck ? L10n.t("dashboard.dailyAt", model.formattedScheduleTime) : L10n.t("dashboard.dailyCheckOff"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -302,7 +302,7 @@ struct ScoreBreakdownView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Label("Score Breakdown (starts at 100)", systemImage: "chart.bar.xaxis")
+                Label(L10n.t("dashboard.scoreBreakdown.title"), systemImage: "chart.bar.xaxis")
                     .font(.system(size: 13, weight: .semibold))
                 Spacer()
                 Button("Done") {
@@ -460,7 +460,7 @@ struct AttentionView: View {
                 .padding(.top, 1)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Worth a look")
+                Text(L10n.t("dashboard.worthALook"))
                     .font(.system(size: 13, weight: .semibold))
                 ForEach(items, id: \.self) { item in
                     HStack(alignment: .firstTextBaseline, spacing: 6) {

@@ -157,6 +157,82 @@ struct RunTests {
         assertEqual(ProbeParsers.friendlyModel("MacBookAir10,1", chip: "Apple M1"), "MacBook Air (M1, 2020) · Apple M1", "Friendly model M1 Air")
         assertEqual(ProbeParsers.friendlyModel("Macmini9,1", chip: "Apple M1"), "Mac mini (M1, 2020) · Apple M1", "Friendly model M1 Mac mini")
 
+        // Time Machine destination and staleness
+        assertTrue(
+            ProbeParsers.hasTimeMachineDestination(readFixture("tmutil_destination.txt")),
+            "Time Machine destination detected"
+        )
+        assertFalse(
+            ProbeParsers.hasTimeMachineDestination(readFixture("tmutil_nodestination.txt")),
+            "No Time Machine destination detected"
+        )
+
+        let utc = TimeZone(identifier: "UTC")!
+        let backupDate = ProbeParsers.latestBackupDate(
+            readFixture("tmutil_latestbackup.txt"),
+            timeZone: utc
+        )
+        assertTrue(backupDate != nil, "Time Machine snapshot timestamp parsed")
+        if let backupDate {
+            var backupCalendar = Calendar(identifier: .gregorian)
+            backupCalendar.timeZone = utc
+            assertEqual(
+                ProbeParsers.daysSince(
+                    backupDate,
+                    now: backupDate.addingTimeInterval(86400 * 3 + 600),
+                    calendar: backupCalendar
+                ),
+                3,
+                "Days since backup counts whole calendar days"
+            )
+            assertEqual(
+                ProbeParsers.daysSince(nil, now: backupDate),
+                nil,
+                "No backup date yields no age"
+            )
+        }
+
+        // MDM enrollment
+        assertTrue(
+            ProbeParsers.mdmEnrolled(readFixture("profiles_enrolled.txt")),
+            "MDM enrollment detected"
+        )
+        assertFalse(
+            ProbeParsers.mdmEnrolled(readFixture("profiles_unenrolled.txt")),
+            "Unmanaged Mac is not flagged"
+        )
+        assertFalse(ProbeParsers.mdmEnrolled(""), "Empty enrollment output is not flagged")
+
+        // SMB mounts
+        assertEqual(
+            ProbeParsers.smbMounts(readFixture("mount_smb.txt")),
+            ["/Volumes/Media"],
+            "SMB mount point parsed"
+        )
+        assertEqual(
+            ProbeParsers.smbMounts("devfs on /dev (devfs, local, nobrowse)"),
+            [],
+            "Local mounts are not SMB"
+        )
+
+        // Per-process aggregates
+        let aggregateProcesses = [
+            TopProcess(pid: "1", name: "mds", cpu: 12.5),
+            TopProcess(pid: "2", name: "MDS_Stores", cpu: 4.0),
+            TopProcess(pid: "3", name: "mds", cpu: 3.5),
+            TopProcess(pid: "4", name: "Safari", cpu: 50)
+        ]
+        assertEqual(
+            ProbeParsers.totalCPU(of: ["mds", "mds_stores"], in: aggregateProcesses),
+            20.0,
+            "CPU aggregate sums duplicate and case-insensitive names"
+        )
+        assertEqual(
+            ProbeParsers.totalCPU(of: ["backupd"], in: aggregateProcesses),
+            0,
+            "Missing process contributes no CPU"
+        )
+
         // MARK: - 2. Rules Tests
 
         print("▸ Testing Rules…")
@@ -271,6 +347,102 @@ struct RunTests {
         assertTrue(genericFixes.contains { $0.id == "quit-org.blender.app" }, "Quit heavy app suggested")
         assertTrue(genericFixes.contains { $0.id == "brew-postgresql@14" }, "Stop brew service suggested")
         assertTrue(genericFixes.contains { $0.id == "helper-com.docker.helper" }, "Disable helper suggested")
+
+        // Phase 5: Time Machine
+        var noBackupContext = desktopBadBatteryContext
+        noBackupContext.hasBackupDestination = false
+        let noBackupFixes = Rules.build(noBackupContext)
+        assertTrue(noBackupFixes.contains { $0.id == "timemachine-none" }, "Missing backup disk is reported")
+        assertTrue(
+            noBackupFixes.first { $0.id == "timemachine-none" }?.command.isEmpty == true,
+            "Backup setup is advice only"
+        )
+
+        var staleBackupContext = desktopBadBatteryContext
+        staleBackupContext.hasBackupDestination = true
+        staleBackupContext.lastBackupDays = 12
+        let staleBackupFixes = Rules.build(staleBackupContext)
+        assertTrue(staleBackupFixes.contains { $0.id == "timemachine-stale" }, "Stale backup is flagged")
+        assertEqual(
+            staleBackupFixes.first { $0.id == "timemachine-stale" }?.undoCommand ?? "",
+            "tmutil stopbackup",
+            "Start-backup fix is reversible"
+        )
+
+        var freshBackupContext = desktopBadBatteryContext
+        freshBackupContext.hasBackupDestination = true
+        freshBackupContext.lastBackupDays = 1
+        assertFalse(
+            Rules.build(freshBackupContext).contains { $0.id == "timemachine-stale" },
+            "Recent backup is not flagged"
+        )
+
+        var runningBackupContext = desktopBadBatteryContext
+        runningBackupContext.backupdCPU = 40
+        let runningBackupFixes = Rules.build(runningBackupContext)
+        assertTrue(runningBackupFixes.contains { $0.id == "backup" }, "Active backup is explained")
+        assertTrue(
+            runningBackupFixes.first { $0.id == "backup" }?.command.isEmpty == true,
+            "Active backup is never stopped automatically"
+        )
+
+        // Phase 5: Spotlight, DNS, SMB and MDM
+        var spotlightContext = desktopBadBatteryContext
+        spotlightContext.spotlightCPU = 35
+        assertTrue(
+            Rules.build(spotlightContext).contains { $0.id == "spotlight" },
+            "Spotlight indexing is explained"
+        )
+
+        var dnsContext = desktopBadBatteryContext
+        dnsContext.dnsCPU = 25
+        let dnsFix = Rules.build(dnsContext).first { $0.id == "dns" }
+        assertTrue(dnsFix != nil, "DNS flush is suggested")
+        assertTrue(dnsFix?.admin == true, "DNS flush requires admin")
+        assertTrue(
+            dnsFix?.command.contains("mDNSResponder") == true,
+            "DNS flush targets the DNS responder"
+        )
+
+        var smbContext = desktopBadBatteryContext
+        smbContext.smbCPU = 20
+        smbContext.smbMounts = ["/Volumes/Media"]
+        assertTrue(
+            Rules.build(smbContext).contains { $0.id == "smb" },
+            "Busy mounted SMB share is reported"
+        )
+        var idleSMBContext = smbContext
+        idleSMBContext.smbCPU = 1
+        assertFalse(
+            Rules.build(idleSMBContext).contains { $0.id == "smb" },
+            "Idle SMB share is not reported"
+        )
+        var unmountedSMBContext = smbContext
+        unmountedSMBContext.smbMounts = []
+        assertFalse(
+            Rules.build(unmountedSMBContext).contains { $0.id == "smb" },
+            "SMB CPU without a mount is not reported"
+        )
+
+        var mdmContext = desktopBadBatteryContext
+        mdmContext.mdmEnrolled = true
+        let mdmFixes = Rules.build(mdmContext)
+        assertTrue(mdmFixes.contains { $0.id == "mdm" }, "Managed Mac is reported")
+        assertTrue(
+            mdmFixes.first { $0.id == "mdm" }?.command.isEmpty == true,
+            "MDM rule never runs a command"
+        )
+        assertFalse(
+            Rules.build(desktopBadBatteryContext).contains { $0.id == "mdm" },
+            "Unmanaged Mac has no MDM rule"
+        )
+
+        // Every rule reads its copy from the catalogue, so no title can be blank.
+        for fix in Rules.build(genericContext) + noBackupFixes + staleBackupFixes {
+            assertFalse(fix.title.isEmpty, "Rule \(fix.id) has a title")
+            assertFalse(fix.detail.isEmpty, "Rule \(fix.id) has a detail")
+            assertFalse(fix.value.isEmpty, "Rule \(fix.id) has a value")
+        }
 
         // MARK: - 3. Scoring Tests
 
@@ -482,6 +654,34 @@ struct RunTests {
         for (key, value) in L10n.strings {
             assertFalse(value.isEmpty, "String '\(key)' is not empty")
         }
+
+        // Software update version comparison and parsing (Phase 5)
+        print("▸ Testing UpdateCheck…")
+        assertTrue(UpdateCheck.isVersion("1.2.1", newerThan: "1.2.0"), "Patch bump is recognized as newer")
+        assertTrue(UpdateCheck.isVersion("v1.3.0", newerThan: "1.2.0"), "Minor bump with v prefix is recognized as newer")
+        assertTrue(UpdateCheck.isVersion("2.0.0", newerThan: "1.9.9"), "Major bump is recognized as newer")
+        assertFalse(UpdateCheck.isVersion("1.2.0", newerThan: "1.2.0"), "Same version is not newer")
+        assertFalse(UpdateCheck.isVersion("1.1.9", newerThan: "1.2.0"), "Older version is not newer")
+        assertFalse(UpdateCheck.isVersion("invalid", newerThan: "1.2.0"), "Malformed candidate is rejected")
+
+        let sampleReleaseJSON = """
+        {
+          "tag_name": "v1.3.0",
+          "html_url": "https://github.com/ShishirShekhar/macpulse/releases/tag/v1.3.0",
+          "prerelease": false
+        }
+        """.data(using: .utf8)!
+        let parsedRelease = UpdateCheck.parseRelease(data: sampleReleaseJSON)
+        assertEqual(parsedRelease?.tagName ?? "", "v1.3.0", "Release tag_name is parsed")
+        assertEqual(
+            parsedRelease?.htmlURL ?? "",
+            "https://github.com/ShishirShekhar/macpulse/releases/tag/v1.3.0",
+            "Release html_url is parsed"
+        )
+        assertFalse(parsedRelease?.isPrerelease ?? true, "Release prerelease flag is parsed")
+
+        let invalidReleaseJSON = "{}".data(using: .utf8)!
+        assertEqual(UpdateCheck.parseRelease(data: invalidReleaseJSON), nil, "Invalid release JSON returns nil")
 
         // Summary
         print("\n===============================")

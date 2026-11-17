@@ -158,6 +158,81 @@ enum ProbeParsers {
         mdutilOutput.contains("Indexing enabled") && !mdutilOutput.contains("disabled")
     }
 
+    /// Sum of CPU for every process whose name matches exactly (case-insensitive).
+    /// `top` lists each worker separately, so Spotlight and friends can appear
+    /// several times.
+    static func totalCPU(of names: [String], in top: [TopProcess]) -> Double {
+        let wanted = Set(names.map { $0.lowercased() })
+        return top
+            .filter { wanted.contains($0.name.lowercased()) }
+            .reduce(0) { $0 + $1.cpu }
+    }
+
+    // MARK: - Time Machine
+
+    /// `tmutil destinationinfo` prints one block per destination. Any block with
+    /// a `Kind` or `Mount Point` means a backup disk is configured.
+    static func hasTimeMachineDestination(_ text: String) -> Bool {
+        let lower = text.lowercased()
+        guard !lower.contains("no destinations configured") else { return false }
+        return lower.contains("kind") || lower.contains("mount point")
+    }
+
+    /// `tmutil latestbackup` prints the snapshot path, which ends in a timestamp
+    /// such as `2026-11-16-215930` (sometimes followed by `.inProgress`).
+    static func latestBackupDate(_ text: String, timeZone: TimeZone = .current) -> Date? {
+        guard let stamp = capture("(\\d{4}-\\d{2}-\\d{2}-\\d{6})", text) else { return nil }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "yyyy-MM-dd-HHmmss"
+        return formatter.date(from: stamp)
+    }
+
+    /// Whole days between a backup date and `now`, counted by calendar day so a
+    /// backup at 23:50 yesterday is "1 day ago" rather than "0".
+    static func daysSince(
+        _ date: Date?,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Int? {
+        guard let date else { return nil }
+        let from = calendar.startOfDay(for: date)
+        let to = calendar.startOfDay(for: now)
+        return max(0, calendar.dateComponents([.day], from: from, to: to).day ?? 0)
+    }
+
+    // MARK: - MDM
+
+    /// Parses `profiles status -type enrollment`. Both the older DEP line and the
+    /// newer "MDM enrollment:" line count, and "No" never does.
+    static func mdmEnrolled(_ text: String) -> Bool {
+        for raw in text.components(separatedBy: "\n") {
+            let line = raw.trimmingCharacters(in: .whitespaces).lowercased()
+            if line.hasPrefix("mdm enrollment:") {
+                return line.contains("yes")
+            }
+            if line.hasPrefix("enrolled via dep:") {
+                return line.contains("yes")
+            }
+        }
+        return false
+    }
+
+    // MARK: - SMB
+
+    /// Mount points from `mount` lines that use `smbfs`, e.g.
+    /// `//user@host/share on /Volumes/share (smbfs, nodev, ...)`.
+    static func smbMounts(_ text: String) -> [String] {
+        text.components(separatedBy: "\n").compactMap { line in
+            guard line.contains("(smbfs"), let onRange = line.range(of: " on ") else { return nil }
+            let rest = line[onRange.upperBound...]
+            guard let end = rest.range(of: " (smbfs") else { return nil }
+            let path = String(rest[..<end.lowerBound]).trimmingCharacters(in: .whitespaces)
+            return path.isEmpty ? nil : path
+        }
+    }
+
     // MARK: - Uptime
 
     static func bootSeconds(_ sysctlBoottimeOutput: String) -> Double {

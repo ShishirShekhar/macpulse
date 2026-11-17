@@ -12,6 +12,8 @@ enum SystemCheck {
         let battery = BatteryProbe.sample()
         let system = SystemProbe.sample(now: now)
         let display = DisplayProbe.sample()
+        let backup = BackupProbe.sample()
+        let management = ManagementProbe.sample()
 
         // Headless scans cannot ask for Automation permission, so the startup
         // probe keeps the cached login items from the previous scan.
@@ -51,7 +53,15 @@ enum SystemCheck {
             batteryCycles: battery.cycles,
             brewServices: startup.brewServices,
             helpers: startup.helpers,
-            heavyApps: display.heavyApps
+            heavyApps: display.heavyApps,
+            hasBackupDestination: backup.hasDestination,
+            lastBackupDays: ProbeParsers.daysSince(backup.lastBackup, now: now),
+            backupdCPU: display.backupdCPU,
+            spotlightCPU: display.spotlightCPU,
+            dnsCPU: display.dnsCPU,
+            smbCPU: display.smbCPU,
+            smbMounts: display.smbMounts,
+            mdmEnrolled: management.mdmEnrolled
         )
         let fixes = Rules.build(context)
 

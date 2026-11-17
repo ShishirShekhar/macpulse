@@ -20,6 +20,19 @@ struct RuleContext {
     var brewServices: [String]
     var helpers: [HelperService]
     var heavyApps: [HeavyApp]
+
+    // Phase 5 sources. Every field has a default so existing call sites and
+    // fixtures keep compiling; a probe that cannot read a value leaves it at the
+    // neutral value and no rule fires for it.
+    var hasBackupDestination: Bool = true
+    /// Days since the last completed Time Machine backup, when known.
+    var lastBackupDays: Int? = nil
+    var backupdCPU: Double = 0
+    var spotlightCPU: Double = 0
+    var dnsCPU: Double = 0
+    var smbCPU: Double = 0
+    var smbMounts: [String] = []
+    var mdmEnrolled: Bool = false
 }
 
 enum Rules {
@@ -34,27 +47,30 @@ enum Rules {
            context.batteryHealthPct < 80 {
             fixes.append(FixSuggestion(
                 id: "battery",
-                title: "Battery needs service",
-                detail: String(
-                    format: "Health is %.1f%% after %d cycles and macOS reports \"%@\". This is hardware: no software fix exists. Book a replacement; until then keep the Mac plugged in and close heavy background apps.",
+                title: L10n.t("rule.battery.title"),
+                detail: L10n.t(
+                    "rule.battery.detail",
                     context.batteryHealthPct, context.batteryCycles, context.batteryCondition
                 ),
                 severity: context.batteryHealthPct < 60 ? .high : .medium,
                 command: "",
                 admin: false,
-                value: "\(Int(context.batteryHealthPct))% health"
+                value: L10n.t("rule.battery.value", Int(context.batteryHealthPct))
             ))
         }
 
         if context.diskFreePct < 10 || context.diskFreeGB < 15 {
             fixes.append(FixSuggestion(
                 id: "disk",
-                title: "Free up disk space",
-                detail: "Only \(Int(context.diskFreeGB)) GB (\(Int(context.diskFreePct))% of the disk) is free. macOS slows down when the startup disk fills. Move large files off the Mac or empty the Bin; MacPulse never deletes files for you.",
+                title: L10n.t("rule.disk.title"),
+                detail: L10n.t(
+                    "rule.disk.detail",
+                    Int(context.diskFreeGB), Int(context.diskFreePct)
+                ),
                 severity: context.diskFreePct < 5 ? .high : .medium,
                 command: "",
                 admin: false,
-                value: "\(Int(context.diskFreeGB)) GB free"
+                value: L10n.t("rule.disk.value", Int(context.diskFreeGB))
             ))
         }
 
@@ -62,12 +78,15 @@ enum Rules {
         if context.memFreePct < 10 || context.swapUsedMB > 1024 {
             fixes.append(FixSuggestion(
                 id: "purge",
-                title: "Flush inactive memory",
-                detail: "Only \(Int(context.memFreePct))% of memory is free and swap is at \(Int(context.swapUsedMB)) MB. Purging inactive caches frees RAM immediately; apps reload data afterwards.",
+                title: L10n.t("rule.purge.title"),
+                detail: L10n.t(
+                    "rule.purge.detail",
+                    Int(context.memFreePct), Int(context.swapUsedMB)
+                ),
                 severity: context.swapUsedMB > 2048 ? .high : .medium,
                 command: "purge",
                 admin: true,
-                value: "\(Int(context.memFreePct))% free"
+                value: L10n.t("rule.purge.value", Int(context.memFreePct))
             ))
         }
 
@@ -75,12 +94,12 @@ enum Rules {
         if context.notificationCPU > 5 {
             fixes.append(FixSuggestion(
                 id: "notifications",
-                title: "Reset Notification Center",
-                detail: "NotificationCenter and usernoted are using \(Int(context.notificationCPU))% CPU. Restarting them clears the stuck loop; no notification history is lost.",
+                title: L10n.t("rule.notifications.title"),
+                detail: L10n.t("rule.notifications.detail", Int(context.notificationCPU)),
                 severity: .medium,
                 command: "killall NotificationCenter 2>/dev/null; killall usernoted 2>/dev/null; true",
                 admin: false,
-                value: "\(Int(context.notificationCPU))% CPU"
+                value: L10n.t("rule.notifications.value", Int(context.notificationCPU))
             ))
         }
 
@@ -88,12 +107,16 @@ enum Rules {
         if context.acSleepMinutes > 0 && context.acSleepMinutes <= 5 {
             fixes.append(FixSuggestion(
                 id: "sleep",
-                title: "Extend the sleep timer",
-                detail: "Your Mac sleeps after \(context.acSleepMinutes) minute\(context.acSleepMinutes == 1 ? "" : "s") on power, which interrupts downloads, builds and backups. This sets 30 minutes on AC, 10 minutes for the display and disk.",
+                title: L10n.t("rule.sleep.title"),
+                detail: L10n.t(
+                    "rule.sleep.detail",
+                    context.acSleepMinutes,
+                    context.acSleepMinutes == 1 ? "" : "s"
+                ),
                 severity: .high,
                 command: "pmset -c sleep 30 displaysleep 10 disksleep 10",
                 admin: true,
-                value: "\(context.acSleepMinutes) min",
+                value: L10n.t("rule.sleep.value", context.acSleepMinutes),
                 undoCommand: "pmset -c sleep \(context.acSleepMinutes) displaysleep 10 disksleep 10"
             ))
         }
@@ -102,12 +125,12 @@ enum Rules {
         if context.kernelTaskCPU > 25 {
             fixes.append(FixSuggestion(
                 id: "thermal",
-                title: "The Mac is thermally throttling",
-                detail: "kernel_task is at \(Int(context.kernelTaskCPU))%, which is how macOS slows the CPU when it gets hot. Close heavy apps, keep vents clear, and avoid charging in a hot room. This is advice only — nothing is changed automatically.",
+                title: L10n.t("rule.thermal.title"),
+                detail: L10n.t("rule.thermal.detail", Int(context.kernelTaskCPU)),
                 severity: context.kernelTaskCPU > 50 ? .high : .medium,
                 command: "",
                 admin: false,
-                value: "\(Int(context.kernelTaskCPU))% kernel_task"
+                value: L10n.t("rule.thermal.value", Int(context.kernelTaskCPU))
             ))
         }
 
@@ -115,12 +138,106 @@ enum Rules {
         if context.interactive && context.windowServerCPU > 60 {
             fixes.append(FixSuggestion(
                 id: "windowserver",
-                title: "Close animated tabs",
-                detail: "WindowServer is at \(Int(context.windowServerCPU))% CPU. A background tab with video, an animated page or a live canvas is usually the cause. Close or pause it to recover that CPU.",
+                title: L10n.t("rule.windowserver.title"),
+                detail: L10n.t("rule.windowserver.detail", Int(context.windowServerCPU)),
                 severity: .medium,
                 command: "",
                 admin: false,
-                value: "\(Int(context.windowServerCPU))% CPU"
+                value: L10n.t("rule.windowserver.value", Int(context.windowServerCPU))
+            ))
+        }
+
+        // Time Machine: no destination at all, or a stale one.
+        if !context.hasBackupDestination {
+            fixes.append(FixSuggestion(
+                id: "timemachine-none",
+                title: L10n.t("rule.timemachine.none.title"),
+                detail: L10n.t("rule.timemachine.none.detail"),
+                severity: .low,
+                command: "",
+                admin: false,
+                value: L10n.t("rule.timemachine.none.value")
+            ))
+        } else if let days = context.lastBackupDays, days >= 7 {
+            fixes.append(FixSuggestion(
+                id: "timemachine-stale",
+                title: L10n.t("rule.timemachine.stale.title"),
+                detail: L10n.t("rule.timemachine.stale.detail", days),
+                severity: days >= 30 ? .medium : .low,
+                command: "tmutil startbackup",
+                admin: false,
+                value: L10n.t("rule.timemachine.stale.value", days),
+                undoCommand: "tmutil stopbackup"
+            ))
+        }
+
+        // Time Machine currently copying data. Informational: never offer to stop
+        // a backup the user started.
+        if context.backupdCPU > 25 {
+            fixes.append(FixSuggestion(
+                id: "backup",
+                title: L10n.t("rule.backup.title"),
+                detail: L10n.t("rule.backup.detail", Int(context.backupdCPU)),
+                severity: context.backupdCPU > 60 ? .medium : .low,
+                command: "",
+                admin: false,
+                value: L10n.t("rule.backup.value", Int(context.backupdCPU))
+            ))
+        }
+
+        // Spotlight indexing.
+        if context.spotlightCPU > 25 {
+            fixes.append(FixSuggestion(
+                id: "spotlight",
+                title: L10n.t("rule.spotlight.title"),
+                detail: L10n.t("rule.spotlight.detail", Int(context.spotlightCPU)),
+                severity: context.spotlightCPU > 60 ? .medium : .low,
+                command: "",
+                admin: false,
+                value: L10n.t("rule.spotlight.value", Int(context.spotlightCPU))
+            ))
+        }
+
+        // DNS responder stuck. Reloading it is safe and needs root.
+        if context.dnsCPU > 10 {
+            fixes.append(FixSuggestion(
+                id: "dns",
+                title: L10n.t("rule.dns.title"),
+                detail: L10n.t("rule.dns.detail", Int(context.dnsCPU)),
+                severity: context.dnsCPU > 40 ? .medium : .low,
+                command: "dscacheutil -flushcache; killall -HUP mDNSResponder 2>/dev/null; true",
+                admin: true,
+                value: L10n.t("rule.dns.value", Int(context.dnsCPU))
+            ))
+        }
+
+        // SMB traffic: advice only, never unmount a share behind the user's back.
+        if context.smbCPU > 5, !context.smbMounts.isEmpty {
+            fixes.append(FixSuggestion(
+                id: "smb",
+                title: L10n.t("rule.smb.title"),
+                detail: L10n.t(
+                    "rule.smb.detail",
+                    context.smbMounts.prefix(2).joined(separator: ", "),
+                    Int(context.smbCPU)
+                ),
+                severity: context.smbCPU > 40 ? .medium : .low,
+                command: "",
+                admin: false,
+                value: L10n.t("rule.smb.value", Int(context.smbCPU))
+            ))
+        }
+
+        // Managed Mac: purely informational. MacPulse never touches MDM settings.
+        if context.mdmEnrolled {
+            fixes.append(FixSuggestion(
+                id: "mdm",
+                title: L10n.t("rule.mdm.title"),
+                detail: L10n.t("rule.mdm.detail"),
+                severity: .low,
+                command: "",
+                admin: false,
+                value: L10n.t("rule.mdm.value")
             ))
         }
 
@@ -128,12 +245,12 @@ enum Rules {
         for app in context.heavyApps.prefix(2) {
             fixes.append(FixSuggestion(
                 id: "quit-\(app.bundleID)",
-                title: "Quit \(app.name)",
-                detail: "\(app.name) is using \(Int(app.cpu))% of one CPU core. Quitting frees CPU, battery and memory. MacPulse sends a normal Quit request, never a force kill, so save your work first.",
+                title: L10n.t("rule.quit.title", app.name),
+                detail: L10n.t("rule.quit.detail", app.name, Int(app.cpu)),
                 severity: app.cpu > 150 ? .medium : .low,
                 command: "",
                 admin: false,
-                value: "\(Int(app.cpu))% CPU",
+                value: L10n.t("rule.quit.value", Int(app.cpu)),
                 nativeAction: "quit",
                 nativeTarget: String(app.pid)
             ))
@@ -149,12 +266,12 @@ enum Rules {
             guard !safeName.isEmpty, safeName == service else { continue }
             fixes.append(FixSuggestion(
                 id: "brew-\(service)",
-                title: "Stop the \(service) service",
-                detail: "Homebrew service \"\(service)\" is running in the background. Stop it if you do not need it right now; Docker, databases and dev servers are common culprits. Start it again any time with brew services start \(service).",
+                title: L10n.t("rule.brew.title", service),
+                detail: L10n.t("rule.brew.detail", service, service),
                 severity: .low,
                 command: "brew services stop \(service)",
                 admin: false,
-                value: "running",
+                value: L10n.t("rule.brew.value"),
                 undoCommand: "brew services start \(service)"
             ))
         }
@@ -172,12 +289,15 @@ enum Rules {
             }
             fixes.append(FixSuggestion(
                 id: "helper-\(helper.label)",
-                title: "Disable \(helper.friendlyName) background helper",
-                detail: "\(helper.label) starts automatically and stays loaded. Disable it if you do not need \(helper.friendlyName) today; it stays installed and can be re-enabled from Settings or with Undo.",
+                title: L10n.t("rule.helper.title", helper.friendlyName),
+                detail: L10n.t(
+                    "rule.helper.detail",
+                    helper.label, helper.friendlyName
+                ),
                 severity: .low,
                 command: command,
                 admin: helper.admin,
-                value: "loaded",
+                value: L10n.t("rule.helper.value"),
                 undoCommand: undo
             ))
         }
@@ -190,12 +310,12 @@ enum Rules {
                 .replacingOccurrences(of: "\"", with: "\\\"")
             fixes.append(FixSuggestion(
                 id: "login-\(name)",
-                title: "Remove login item: \(name)",
-                detail: "\(name) opens automatically every time you log in. Remove it if you do not need it at startup. macOS may ask once for permission to control Login Items.",
+                title: L10n.t("rule.login.title", name),
+                detail: L10n.t("rule.login.detail", name),
                 severity: .low,
                 command: "/usr/bin/osascript -e 'tell application \"System Events\" to delete login item \"\(escaped)\"'",
                 admin: false,
-                value: "login item"
+                value: L10n.t("rule.login.value")
             ))
         }
 

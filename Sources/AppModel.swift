@@ -101,6 +101,12 @@ final class AppModel: ObservableObject {
     @Published var scoreNotificationThreshold = Notifications.defaultThreshold {
         didSet { UserDefaults.standard.set(scoreNotificationThreshold, forKey: Notifications.thresholdKey) }
     }
+    @Published var checkForUpdates = false {
+        didSet { UserDefaults.standard.set(checkForUpdates, forKey: UpdateCheck.enabledKey) }
+    }
+    @Published var isCheckingForUpdates = false
+    @Published var updateStatus: String?
+    @Published var availableUpdate: UpdateCheck.ReleaseInfo?
 
     private let declinedKey = "declinedFixIDs"
     private let excludedRulesKey = "excludedRuleIDs"
@@ -121,6 +127,7 @@ final class AppModel: ObservableObject {
         scoreNotificationsEnabled = defaults.bool(forKey: Notifications.enabledKey)
         scoreNotificationThreshold = defaults.object(forKey: Notifications.thresholdKey) as? Int
             ?? Notifications.defaultThreshold
+        checkForUpdates = defaults.bool(forKey: UpdateCheck.enabledKey)
         history = HistoryStore.load()
 
         if let savedSchedule = LaunchAgent.installedSchedule {
@@ -204,6 +211,43 @@ final class AppModel: ObservableObject {
             }
         } else {
             runCheck()
+        }
+
+        if checkForUpdates {
+            let lastCheck = UserDefaults.standard.double(forKey: UpdateCheck.lastCheckedKey)
+            if Date().timeIntervalSince1970 - lastCheck > 24 * 3600 {
+                triggerUpdateCheck(manual: false)
+            }
+        }
+    }
+
+    func triggerUpdateCheck(manual: Bool = false) {
+        guard !isCheckingForUpdates else { return }
+        isCheckingForUpdates = true
+        if manual {
+            updateStatus = L10n.t("updates.checking")
+        }
+        let currentVer = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.0"
+        UpdateCheck.check(currentVersion: currentVer) { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.isCheckingForUpdates = false
+                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: UpdateCheck.lastCheckedKey)
+                switch result {
+                case .success(let release):
+                    if let release = release {
+                        self.availableUpdate = release
+                        self.updateStatus = L10n.t("updates.available", release.tagName)
+                    } else {
+                        self.availableUpdate = nil
+                        self.updateStatus = L10n.t("updates.upToDate", currentVer)
+                    }
+                case .failure:
+                    if manual {
+                        self.updateStatus = L10n.t("updates.failed")
+                    }
+                }
+            }
         }
     }
 
