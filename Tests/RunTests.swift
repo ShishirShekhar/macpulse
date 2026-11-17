@@ -717,6 +717,51 @@ struct RunTests {
             assertFalse(value.isEmpty, "String '\(key)' is not empty")
         }
 
+        // Multi-language translation tests
+        assertTrue(L10n.supportedLanguages.contains("de"), "German supported")
+        assertTrue(L10n.supportedLanguages.contains("fr"), "French supported")
+        assertTrue(L10n.supportedLanguages.contains("es"), "Spanish supported")
+        assertTrue(L10n.supportedLanguages.contains("ja"), "Japanese supported")
+
+        // German
+        L10n.overrideLanguage = "de"
+        assertEqual(L10n.t("common.done"), "Fertig", "German common.done")
+        assertEqual(L10n.t("history.scoreUp", 5), "Punktzahl um 5 Punkte gestiegen", "German formatted scoreUp")
+        for key in L10n.keys {
+            assertTrue(L10n.germanStrings[key] != nil, "German key '\(key)' is present")
+            assertFalse(L10n.germanStrings[key]?.isEmpty ?? true, "German value for '\(key)' is not empty")
+        }
+
+        // French
+        L10n.overrideLanguage = "fr"
+        assertEqual(L10n.t("common.done"), "Terminé", "French common.done")
+        assertEqual(L10n.t("history.scoreUp", 5), "Score en hausse de 5 points", "French formatted scoreUp")
+        for key in L10n.keys {
+            assertTrue(L10n.frenchStrings[key] != nil, "French key '\(key)' is present")
+            assertFalse(L10n.frenchStrings[key]?.isEmpty ?? true, "French value for '\(key)' is not empty")
+        }
+
+        // Spanish
+        L10n.overrideLanguage = "es"
+        assertEqual(L10n.t("common.done"), "Hecho", "Spanish common.done")
+        assertEqual(L10n.t("history.scoreUp", 5), "Puntuación subió 5 puntos", "Spanish formatted scoreUp")
+        for key in L10n.keys {
+            assertTrue(L10n.spanishStrings[key] != nil, "Spanish key '\(key)' is present")
+            assertFalse(L10n.spanishStrings[key]?.isEmpty ?? true, "Spanish value for '\(key)' is not empty")
+        }
+
+        // Japanese
+        L10n.overrideLanguage = "ja"
+        assertEqual(L10n.t("common.done"), "完了", "Japanese common.done")
+        assertEqual(L10n.t("history.scoreUp", 5), "スコアが 5 ポイント上昇", "Japanese formatted scoreUp")
+        for key in L10n.keys {
+            assertTrue(L10n.japaneseStrings[key] != nil, "Japanese key '\(key)' is present")
+            assertFalse(L10n.japaneseStrings[key]?.isEmpty ?? true, "Japanese value for '\(key)' is not empty")
+        }
+
+        // Reset override
+        L10n.overrideLanguage = nil
+
         // Software update version comparison and parsing (Phase 5)
         print("▸ Testing UpdateCheck…")
         assertTrue(UpdateCheck.isVersion("1.2.1", newerThan: "1.2.0"), "Patch bump is recognized as newer")

@@ -8,8 +8,33 @@ import Foundation
 enum L10n {
     static let defaultLanguage = "en"
 
+    /// User or test override language. When nil, matches the best available language
+    /// from Locale.preferredLanguages, falling back to defaultLanguage ("en").
+    static var overrideLanguage: String? = nil
+
+    /// Active language code ("en", "de", "fr", "es", "ja").
+    static var currentLanguage: String {
+        if let override = overrideLanguage, catalogue[override] != nil {
+            return override
+        }
+        for preferred in Locale.preferredLanguages {
+            let prefix = String(preferred.prefix(2)).lowercased()
+            if catalogue[prefix] != nil {
+                return prefix
+            }
+        }
+        return defaultLanguage
+    }
+
     private static let catalogue: [String: [String: String]] = [
-        "en": [
+        "en": englishStrings,
+        "de": germanStrings,
+        "fr": frenchStrings,
+        "es": spanishStrings,
+        "ja": japaneseStrings
+    ]
+
+    static let englishStrings: [String: String] = [
             // Shared
             "common.done": "Done",
             "common.cancel": "Cancel",
@@ -164,29 +189,34 @@ enum L10n {
             "rule.sleep_caffeinate.value": "PID %d",
             "rule.peripheral.title": "%@ battery low (%d%%)",
             "rule.peripheral.detail": "%@ is at %d%% battery. Charge or replace batteries soon to prevent disconnection.",
-            "rule.peripheral.value": "%d%%",
-        ]
+            "rule.peripheral.value": "%d%%"
     ]
 
-    /// Looks up `key` in the default language. Extra arguments are applied with
-    /// `String(format:)`, so callers can keep one template per string.
+    /// Looks up `key` in the current language, falling back to English, then to the key.
+    /// Extra arguments are applied with `String(format:)`.
     static func t(_ key: String, _ arguments: CVarArg...) -> String {
-        let template = catalogue[defaultLanguage]?[key] ?? key
+        let lang = currentLanguage
+        let template = catalogue[lang]?[key] ?? catalogue[defaultLanguage]?[key] ?? key
         guard !arguments.isEmpty else { return template }
         return String(format: template, arguments: arguments)
     }
 
     static func has(_ key: String) -> Bool {
-        catalogue[defaultLanguage]?[key] != nil
+        catalogue[currentLanguage]?[key] != nil || catalogue[defaultLanguage]?[key] != nil
     }
 
-    /// Every key in the shipping language, sorted. Used by the tests to catch
-    /// empty values and accidental duplicates in review.
+    /// Every key in the default language, sorted.
     static var keys: [String] {
         (catalogue[defaultLanguage] ?? [:]).keys.sorted()
     }
 
+    /// Active dictionary in the current resolved language.
     static var strings: [String: String] {
-        catalogue[defaultLanguage] ?? [:]
+        catalogue[currentLanguage] ?? catalogue[defaultLanguage] ?? [:]
+    }
+
+    /// All supported language codes.
+    static var supportedLanguages: [String] {
+        Array(catalogue.keys).sorted()
     }
 }
